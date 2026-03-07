@@ -17,11 +17,13 @@ export default function PuntoDeVenta({ usuario }) {
     const [modalAuth, setModalAuth] = useState(null);
     // modalAuth = { permisoClave, descripcionAccion, onAutorizado }
 
-    // --- Extraer permisos del usuario para el módulo CAJ ---
+    // puede_ver   → ver el módulo (controlado por RutaProtegida en App.jsx)
+    // puede_editar → seleccionar productos, buscar clientes, registrar factura
+    // puede_crear  → aplicar descuentos
     const permisosCAJ = usuario?.permisos?.['CAJ'] || {};
     const puedeEditarCliente = permisosCAJ.puede_editar === true;
-    const puedeAplicarDescuento = permisosCAJ.puede_editar === true;
-    const puedeRegistrarFactura = permisosCAJ.puede_crear === true;
+    const puedeAplicarDescuento = permisosCAJ.puede_crear === true;
+    const puedeRegistrarFactura = permisosCAJ.puede_editar === true;
 
     useEffect(() => {
         const cargarDatosInciales = async () => {
@@ -386,7 +388,7 @@ export default function PuntoDeVenta({ usuario }) {
                                     onClick={() => {
                                         if (!puedeAplicarDescuento) {
                                             setModalAuth({
-                                                permisoClave: 'puede_editar',
+                                                permisoClave: 'puede_crear',
                                                 descripcionAccion: 'Aplicar descuentos',
                                                 onAutorizado: () => setModalAuth(null)
                                             });
