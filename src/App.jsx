@@ -224,7 +224,7 @@ function LayoutConMenu({ children, onLogout, usuario }) {
             }}
             title="Cerrar Sesión"
             onMouseOver={(e) => e.target.style.backgroundColor = '#c0392b'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#e74c3c'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#c0392b'}
           >
             <span style={{ fontSize: '18px', marginRight: menuAbierto ? '10px' : '0' }}>🚪</span>
             {menuAbierto && <span>Cerrar Sesión</span>}
