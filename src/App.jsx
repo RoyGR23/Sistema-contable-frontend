@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import PuntoDeVenta from './PuntoDeVenta';
 import Clientes from './Clientes';
 import Inventario from './Inventario';
@@ -11,15 +11,29 @@ import Login from './Login';
 import logoImg from './assets/logo.jpg';
 import { API_BASE_URL } from './config';
 
+// Verifica si el usuario tiene permiso para ver un módulo
+// Si el usuario no tiene permisos definidos (objeto vacío), se asume Administrador y ve todo
+function tienePerm(permisos, codigo) {
+  if (!permisos || Object.keys(permisos).length === 0) return true;
+  return permisos[codigo]?.puede_ver === true;
+}
+
+// Componente que protege una ruta: si el usuario no tiene permiso, redirige al inicio
+function RutaProtegida({ children, permisos, codigo }) {
+  if (!tienePerm(permisos, codigo)) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
 // --- 1. COMPONENTE DEL MENÚ LATERAL (SIDEBAR) ---
 function LayoutConMenu({ children, onLogout, usuario }) {
-  // Estado para controlar si el menú está abierto o cerrado
   const [menuAbierto, setMenuAbierto] = useState(true);
   const [inventarioAbierto, setInventarioAbierto] = useState(false);
   const [administracionAbierto, setAdministracionAbierto] = useState(false);
 
-  // Para saber en qué ruta estamos y resaltar el botón activo
   const location = useLocation();
+  const permisos = usuario?.permisos || {};
 
   const anchoMenu = menuAbierto ? '260px' : '70px';
 
@@ -33,9 +47,20 @@ function LayoutConMenu({ children, onLogout, usuario }) {
     fontSize: '16px',
     transition: 'background-color 0.2s, color 0.2s',
     borderLeft: location.pathname === ruta ? '4px solid #ffffff' : '4px solid transparent',
-    whiteSpace: 'nowrap', // Evita que el texto baje a la siguiente línea al cerrar
+    whiteSpace: 'nowrap',
     overflow: 'hidden'
   });
+
+  // Determinar si el bloque Inventario tiene al menos un sub-item visible
+  const verInventario = tienePerm(permisos, 'gestion_inventario');
+  const verCategorias = tienePerm(permisos, 'categorias');
+  const mostrarMenuInventario = verInventario || verCategorias;
+
+  // Determinar si el bloque Administración tiene al menos un sub-item visible
+  const verDescuentos = tienePerm(permisos, 'descuentos');
+  const verRoles = tienePerm(permisos, 'roles_permisos');
+  const verUsuarios = tienePerm(permisos, 'usuarios');
+  const mostrarMenuAdmin = verDescuentos || verRoles || verUsuarios;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', width: '100%', backgroundColor: '#f4f6f9' }}>
@@ -43,8 +68,8 @@ function LayoutConMenu({ children, onLogout, usuario }) {
       {/* --- PANEL LATERAL (SIDEBAR) --- */}
       <div style={{
         width: anchoMenu,
-        backgroundColor: '#ffffff', // Fondo blanco
-        color: '#212529', // Texto oscuro
+        backgroundColor: '#ffffff',
+        color: '#212529',
         transition: 'width 0.3s ease',
         display: 'flex',
         flexDirection: 'column',
@@ -70,85 +95,109 @@ function LayoutConMenu({ children, onLogout, usuario }) {
 
         {/* Enlaces de Navegación */}
         <nav style={{ display: 'flex', flexDirection: 'column', marginTop: '20px' }}>
-          <Link to="/" style={estiloEnlace('/')} title="Inicio">
-            <span style={{ fontSize: '20px', minWidth: '35px' }}>🏠</span>
-            {menuAbierto && <span>Panel Principal</span>}
-          </Link>
 
-          <Link to="/pos" style={estiloEnlace('/pos')} title="Punto de Venta">
-            <span style={{ fontSize: '20px', minWidth: '35px' }}>🛒</span>
-            {menuAbierto && <span>Caja</span>}
-          </Link>
+          {/* Panel Principal — siempre visible */}
+          {tienePerm(permisos, 'panel_principal') && (
+            <Link to="/" style={estiloEnlace('/')} title="Inicio">
+              <span style={{ fontSize: '20px', minWidth: '35px' }}>🏠</span>
+              {menuAbierto && <span>Panel Principal</span>}
+            </Link>
+          )}
 
-          <Link to="/clientes" style={estiloEnlace('/clientes')} title="Clientes">
-            <span style={{ fontSize: '20px', minWidth: '35px' }}>👥</span>
-            {menuAbierto && <span>Clientes</span>}
-          </Link>
+          {/* Caja */}
+          {tienePerm(permisos, 'caja') && (
+            <Link to="/pos" style={estiloEnlace('/pos')} title="Punto de Venta">
+              <span style={{ fontSize: '20px', minWidth: '35px' }}>🛒</span>
+              {menuAbierto && <span>Caja</span>}
+            </Link>
+          )}
+
+          {/* Clientes — no tiene módulo propio, lo dejamos fuera del sistema de permisos por ahora */}
+          {tienePerm(permisos, 'clientes') && (
+            <Link to="/clientes" style={estiloEnlace('/clientes')} title="Clientes">
+              <span style={{ fontSize: '20px', minWidth: '35px' }}>👥</span>
+              {menuAbierto && <span>Clientes</span>}
+            </Link>
+          )}
 
           {/* Menú Desplegable Inventario */}
-          <div>
-            <div
-              onClick={() => {
-                setInventarioAbierto(!inventarioAbierto);
-                if (!menuAbierto) setMenuAbierto(true); // Abre el menú principal si estaba cerrado
-              }}
-              style={{ ...estiloEnlace(''), cursor: 'pointer', backgroundColor: (location.pathname.startsWith('/inventario') || location.pathname.startsWith('/categorias')) ? 'rgba(0, 123, 255, 0.1)' : 'transparent', color: '#495057' }}
-              title="Inventario"
-            >
-              <span style={{ fontSize: '20px', minWidth: '35px' }}>📦</span>
-              {menuAbierto && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                  <span>Inventario</span>
-                  <span style={{ fontSize: '12px', transform: inventarioAbierto ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>▼</span>
+          {mostrarMenuInventario && (
+            <div>
+              <div
+                onClick={() => {
+                  setInventarioAbierto(!inventarioAbierto);
+                  if (!menuAbierto) setMenuAbierto(true);
+                }}
+                style={{ ...estiloEnlace(''), cursor: 'pointer', backgroundColor: (location.pathname.startsWith('/inventario') || location.pathname.startsWith('/categorias')) ? 'rgba(0, 123, 255, 0.1)' : 'transparent', color: '#495057' }}
+                title="Inventario"
+              >
+                <span style={{ fontSize: '20px', minWidth: '35px' }}>📦</span>
+                {menuAbierto && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <span>Inventario</span>
+                    <span style={{ fontSize: '12px', transform: inventarioAbierto ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>▼</span>
+                  </div>
+                )}
+              </div>
+
+              {menuAbierto && inventarioAbierto && (
+                <div style={{ backgroundColor: '#f8f9fa', padding: '5px 0' }}>
+                  {verInventario && (
+                    <Link to="/inventario" style={{ ...estiloEnlace('/inventario'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/inventario' ? '#e9ecef' : 'transparent', color: location.pathname === '/inventario' ? '#007bff' : '#495057' }}>
+                      Gestión de Inventario
+                    </Link>
+                  )}
+                  {verCategorias && (
+                    <Link to="/categorias" style={{ ...estiloEnlace('/categorias'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/categorias' ? '#e9ecef' : 'transparent', color: location.pathname === '/categorias' ? '#007bff' : '#495057' }}>
+                      Categorías
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
-
-            {menuAbierto && inventarioAbierto && (
-              <div style={{ backgroundColor: '#f8f9fa', padding: '5px 0' }}>
-                <Link to="/inventario" style={{ ...estiloEnlace('/inventario'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/inventario' ? '#e9ecef' : 'transparent', color: location.pathname === '/inventario' ? '#007bff' : '#495057' }}>
-                  Gestión de Inventario
-                </Link>
-                <Link to="/categorias" style={{ ...estiloEnlace('/categorias'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/categorias' ? '#e9ecef' : 'transparent', color: location.pathname === '/categorias' ? '#007bff' : '#495057' }}>
-                  Categorías
-                </Link>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Menú Desplegable Administración */}
-          <div>
-            <div
-              onClick={() => {
-                setAdministracionAbierto(!administracionAbierto);
-                if (!menuAbierto) setMenuAbierto(true); // Abre el menú principal si estaba cerrado
-              }}
-              style={{ ...estiloEnlace(''), cursor: 'pointer', backgroundColor: (location.pathname.startsWith('/descuentos') || location.pathname.startsWith('/roles') || location.pathname.startsWith('/usuarios')) ? 'rgba(0, 123, 255, 0.1)' : 'transparent', color: '#495057' }}
-              title="Administración"
-            >
-              <span style={{ fontSize: '20px', minWidth: '35px' }}>⚙️</span>
-              {menuAbierto && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                  <span>Administración</span>
-                  <span style={{ fontSize: '12px', transform: administracionAbierto ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>▼</span>
+          {mostrarMenuAdmin && (
+            <div>
+              <div
+                onClick={() => {
+                  setAdministracionAbierto(!administracionAbierto);
+                  if (!menuAbierto) setMenuAbierto(true);
+                }}
+                style={{ ...estiloEnlace(''), cursor: 'pointer', backgroundColor: (location.pathname.startsWith('/descuentos') || location.pathname.startsWith('/roles') || location.pathname.startsWith('/usuarios')) ? 'rgba(0, 123, 255, 0.1)' : 'transparent', color: '#495057' }}
+                title="Administración"
+              >
+                <span style={{ fontSize: '20px', minWidth: '35px' }}>⚙️</span>
+                {menuAbierto && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <span>Administración</span>
+                    <span style={{ fontSize: '12px', transform: administracionAbierto ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>▼</span>
+                  </div>
+                )}
+              </div>
+
+              {menuAbierto && administracionAbierto && (
+                <div style={{ backgroundColor: '#f8f9fa', padding: '5px 0' }}>
+                  {verDescuentos && (
+                    <Link to="/descuentos" style={{ ...estiloEnlace('/descuentos'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/descuentos' ? '#e9ecef' : 'transparent', color: location.pathname === '/descuentos' ? '#007bff' : '#495057' }}>
+                      Descuentos
+                    </Link>
+                  )}
+                  {verRoles && (
+                    <Link to="/roles" style={{ ...estiloEnlace('/roles'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/roles' ? '#e9ecef' : 'transparent', color: location.pathname === '/roles' ? '#007bff' : '#495057' }}>
+                      Roles y Permisos
+                    </Link>
+                  )}
+                  {verUsuarios && (
+                    <Link to="/usuarios" style={{ ...estiloEnlace('/usuarios'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/usuarios' ? '#e9ecef' : 'transparent', color: location.pathname === '/usuarios' ? '#007bff' : '#495057' }}>
+                      Usuarios
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
-
-            {menuAbierto && administracionAbierto && (
-              <div style={{ backgroundColor: '#f8f9fa', padding: '5px 0' }}>
-                <Link to="/descuentos" style={{ ...estiloEnlace('/descuentos'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/descuentos' ? '#e9ecef' : 'transparent', color: location.pathname === '/descuentos' ? '#007bff' : '#495057' }}>
-                  Descuentos
-                </Link>
-                <Link to="/roles" style={{ ...estiloEnlace('/roles'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/roles' ? '#e9ecef' : 'transparent', color: location.pathname === '/roles' ? '#007bff' : '#495057' }}>
-                  Roles y Permisos
-                </Link>
-                <Link to="/usuarios" style={{ ...estiloEnlace('/usuarios'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/usuarios' ? '#e9ecef' : 'transparent', color: location.pathname === '/usuarios' ? '#007bff' : '#495057' }}>
-                  Usuarios
-                </Link>
-              </div>
-            )}
-          </div>
+          )}
 
           <div style={{ ...estiloEnlace('#'), cursor: 'not-allowed', opacity: 0.5 }} title="Reportes DGII (Próximamente)">
             <span style={{ fontSize: '20px', minWidth: '35px' }}>📊</span>
@@ -370,13 +419,41 @@ export default function App() {
       <LayoutConMenu onLogout={handleLogout} usuario={usuarioActivo}>
         <Routes>
           <Route path="/" element={<PantallaInicio />} />
-          <Route path="/pos" element={<PuntoDeVenta />} />
-          <Route path="/clientes" element={<Clientes />} />
-          <Route path="/inventario" element={<Inventario />} />
-          <Route path="/categorias" element={<Categorias />} />
-          <Route path="/descuentos" element={<Descuentos />} />
-          <Route path="/roles" element={<Roles />} />
-          <Route path="/usuarios" element={<Usuarios />} />
+          <Route path="/pos" element={
+            <RutaProtegida permisos={usuarioActivo.permisos} codigo="caja">
+              <PuntoDeVenta />
+            </RutaProtegida>
+          } />
+          <Route path="/clientes" element={
+            <RutaProtegida permisos={usuarioActivo.permisos} codigo="clientes">
+              <Clientes />
+            </RutaProtegida>
+          } />
+          <Route path="/inventario" element={
+            <RutaProtegida permisos={usuarioActivo.permisos} codigo="gestion_inventario">
+              <Inventario />
+            </RutaProtegida>
+          } />
+          <Route path="/categorias" element={
+            <RutaProtegida permisos={usuarioActivo.permisos} codigo="categorias">
+              <Categorias />
+            </RutaProtegida>
+          } />
+          <Route path="/descuentos" element={
+            <RutaProtegida permisos={usuarioActivo.permisos} codigo="descuentos">
+              <Descuentos />
+            </RutaProtegida>
+          } />
+          <Route path="/roles" element={
+            <RutaProtegida permisos={usuarioActivo.permisos} codigo="roles_permisos">
+              <Roles />
+            </RutaProtegida>
+          } />
+          <Route path="/usuarios" element={
+            <RutaProtegida permisos={usuarioActivo.permisos} codigo="usuarios">
+              <Usuarios />
+            </RutaProtegida>
+          } />
         </Routes>
       </LayoutConMenu>
     </Router>
