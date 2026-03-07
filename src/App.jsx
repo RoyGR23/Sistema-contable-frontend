@@ -421,7 +421,7 @@ export default function App() {
           <Route path="/" element={<PantallaInicio />} />
           <Route path="/pos" element={
             <RutaProtegida permisos={usuarioActivo.permisos} codigo="CAJ">
-              <PuntoDeVenta />
+              <PuntoDeVenta usuario={usuarioActivo} />
             </RutaProtegida>
           } />
           <Route path="/clientes" element={
