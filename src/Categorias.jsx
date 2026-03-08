@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from './config';
+import ModalAutorizacion from './ModalAutorizacion';
 
-export default function Categorias() {
+export default function Categorias({ usuario }) {
     const [prendas, setPrendas] = useState([]);
     const [colores, setColores] = useState([]);
     const [tallas, setTallas] = useState([]);
@@ -20,6 +21,11 @@ export default function Categorias() {
         colores: false,
         tallas: false
     });
+
+    const [modalAuth, setModalAuth] = useState(null);
+    const permisos_acciones = usuario?.permisos_acciones || [];
+    const puedeAgregar = permisos_acciones.includes('categorias_agregar');
+    const puedeEliminar = permisos_acciones.includes('categorias_eliminar');
 
     const toggleExpansion = (llave) => {
         setTarjetasExpandidas(prev => ({ ...prev, [llave]: !prev[llave] }));
@@ -113,7 +119,20 @@ export default function Categorias() {
                                 style={{ flex: 1, padding: '8px 12px', borderRadius: '5px', border: '1px solid #bdc3c7', outline: 'none' }}
                             />
                             <button
-                                onClick={() => agregarItem(tipoEndpoint, valorNuevo, setValorNuevo)}
+                                onClick={() => {
+                                    if (puedeAgregar) {
+                                        agregarItem(tipoEndpoint, valorNuevo, setValorNuevo);
+                                    } else {
+                                        setModalAuth({
+                                            permiso_requerido: 'categorias_agregar',
+                                            descripcionAccion: `Agregar nuevo ${titulo.toLowerCase()}`,
+                                            onAutorizado: () => {
+                                                setModalAuth(null);
+                                                agregarItem(tipoEndpoint, valorNuevo, setValorNuevo);
+                                            }
+                                        });
+                                    }
+                                }}
                                 style={{ padding: '8px 15px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
                             >
                                 Añadir
@@ -130,7 +149,20 @@ export default function Categorias() {
                                     <li key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderBottom: '1px solid #f1f2f6' }}>
                                         <span style={{ color: '#34495e', fontSize: '14px' }}>{item.nombre}</span>
                                         <button
-                                            onClick={() => eliminarItem(tipoEndpoint, item.id)}
+                                            onClick={() => {
+                                                if (puedeEliminar) {
+                                                    eliminarItem(tipoEndpoint, item.id);
+                                                } else {
+                                                    setModalAuth({
+                                                        permiso_requerido: 'categorias_eliminar',
+                                                        descripcionAccion: `Eliminar ${titulo.toLowerCase()} permanentemente`,
+                                                        onAutorizado: () => {
+                                                            setModalAuth(null);
+                                                            eliminarItem(tipoEndpoint, item.id);
+                                                        }
+                                                    });
+                                                }
+                                            }}
                                             style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '14px' }}
                                             title="Eliminar"
                                         >
@@ -165,6 +197,15 @@ export default function Categorias() {
                     {renderCard("Tallas", tallas, "tallas", nuevaTalla, setNuevaTalla, "tallas")}
                 </div>
             </div>
+
+            {modalAuth && (
+                <ModalAutorizacion
+                    permisoRequerido={modalAuth.permiso_requerido}
+                    descripcionAccion={modalAuth.descripcionAccion}
+                    onAutorizado={modalAuth.onAutorizado}
+                    onCancelar={() => setModalAuth(null)}
+                />
+            )}
         </div>
     );
 }

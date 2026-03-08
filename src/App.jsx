@@ -491,7 +491,7 @@ export default function App() {
           } />
           <Route path="/categorias" element={
             <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="CAT">
-              <Categorias />
+              <Categorias usuario={usuarioActivo} />
             </RutaProtegida>
           } />
           <Route path="/descuentos" element={
