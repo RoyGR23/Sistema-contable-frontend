@@ -262,7 +262,7 @@ function ModalAbono({ cuenta, onCerrar, onAbonoRealizado }) {
 }
 
 // ─── Panel Lateral: Historial de Abonos ──────────────────────────────────────
-function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta }) {
+function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta, puedeAbonar }) {
     const [abonos, setAbonos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [mostrarModalAbono, setMostrarModalAbono] = useState(false);
@@ -324,23 +324,25 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta }) {
                 </div>
 
                 {/* Botón Realizar Abono */}
-                <div style={{ padding: '12px 24px', borderBottom: '1px solid #e9ecef' }}>
-                    <button
-                        onClick={() => setMostrarModalAbono(true)}
-                        disabled={saldoCero || cuentaCerrada}
-                        title={saldoCero ? 'El saldo ya está en cero' : cuentaCerrada ? 'La cuenta está cerrada' : 'Registrar nuevo abono'}
-                        style={{
-                            padding: '9px 18px', borderRadius: '8px', border: 'none',
-                            backgroundColor: saldoCero || cuentaCerrada ? '#e9ecef' : '#198754',
-                            color: saldoCero || cuentaCerrada ? '#adb5bd' : 'white',
-                            cursor: saldoCero || cuentaCerrada ? 'not-allowed' : 'pointer',
-                            fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px'
-                        }}
-                    >
-                        Realizar Abono
-                        {(saldoCero || cuentaCerrada) && <span style={{ fontSize: '12px', fontWeight: '400' }}>(Cuenta saldada)</span>}
-                    </button>
-                </div>
+                {puedeAbonar && (
+                    <div style={{ padding: '12px 24px', borderBottom: '1px solid #e9ecef' }}>
+                        <button
+                            onClick={() => setMostrarModalAbono(true)}
+                            disabled={saldoCero || cuentaCerrada}
+                            title={saldoCero ? 'El saldo ya está en cero' : cuentaCerrada ? 'La cuenta está cerrada' : 'Registrar nuevo abono'}
+                            style={{
+                                padding: '9px 18px', borderRadius: '8px', border: 'none',
+                                backgroundColor: saldoCero || cuentaCerrada ? '#e9ecef' : '#198754',
+                                color: saldoCero || cuentaCerrada ? '#adb5bd' : 'white',
+                                cursor: saldoCero || cuentaCerrada ? 'not-allowed' : 'pointer',
+                                fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px'
+                            }}
+                        >
+                            Realizar Abono
+                            {(saldoCero || cuentaCerrada) && <span style={{ fontSize: '12px', fontWeight: '400' }}>(Cuenta saldada)</span>}
+                        </button>
+                    </div>
+                )}
 
                 {/* Historial */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
@@ -387,7 +389,12 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta }) {
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export default function CuentasCobrar() {
+export default function CuentasCobrar({ usuario }) {
+    const permisos_acciones = usuario?.permisos_acciones || [];
+    const puedeExportarPdf = permisos_acciones.includes('cuentas_cobrar_exportar_pdf');
+    const puedeSeleccionar = permisos_acciones.includes('cuentas_cobrar_seleccionar');
+    const puedeAbonar = permisos_acciones.includes('cuentas_cobrar_abonar');
+
     const [cuentas, setCuentas] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [mensaje, setMensaje] = useState('');
@@ -474,12 +481,14 @@ export default function CuentasCobrar() {
                         ))}
                     </div>
                 </div>
-                <button
-                    onClick={() => setMostrarModalPDF(true)}
-                    style={{ padding: '9px 18px', borderRadius: '8px', border: 'none', backgroundColor: '#dc3545', color: 'white', cursor: 'pointer', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
-                >
-                    Exportar PDF
-                </button>
+                {puedeExportarPdf && (
+                    <button
+                        onClick={() => setMostrarModalPDF(true)}
+                        style={{ padding: '9px 18px', borderRadius: '8px', border: 'none', backgroundColor: '#dc3545', color: 'white', cursor: 'pointer', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
+                    >
+                        Exportar PDF
+                    </button>
+                )}
             </div>
 
             {mensaje && (
@@ -507,16 +516,16 @@ export default function CuentasCobrar() {
                             {cuentasFiltradas.map((c, i) => (
                                 <tr
                                     key={c.id}
-                                    onClick={() => setCuentaSeleccionada(c)}
+                                    onClick={() => puedeSeleccionar && setCuentaSeleccionada(c)}
                                     style={{
                                         backgroundColor: cuentaSeleccionada?.id === c.id ? '#e8f4f8' : (i % 2 === 0 ? 'white' : '#fafafa'),
                                         borderBottom: '1px solid #f0f0f0',
-                                        cursor: 'pointer',
+                                        cursor: puedeSeleccionar ? 'pointer' : 'default',
                                         transition: 'background-color 0.15s',
                                         outline: cuentaSeleccionada?.id === c.id ? '2px solid #3498db' : 'none',
                                         outlineOffset: cuentaSeleccionada?.id === c.id ? '-2px' : '0'
                                     }}
-                                    onMouseEnter={e => { if (cuentaSeleccionada?.id !== c.id) e.currentTarget.style.backgroundColor = '#f0f7ff'; }}
+                                    onMouseEnter={e => { if (cuentaSeleccionada?.id !== c.id) e.currentTarget.style.backgroundColor = puedeSeleccionar ? '#f0f7ff' : (i % 2 === 0 ? 'white' : '#fafafa'); }}
                                     onMouseLeave={e => { if (cuentaSeleccionada?.id !== c.id) e.currentTarget.style.backgroundColor = i % 2 === 0 ? 'white' : '#fafafa'; }}
                                 >
                                     <td style={{ padding: '14px 16px', fontSize: '13px', fontFamily: 'monospace', color: '#495057' }}>{c.ncf || '—'}</td>
@@ -539,6 +548,7 @@ export default function CuentasCobrar() {
                     cuenta={cuentaSeleccionada}
                     onCerrar={() => setCuentaSeleccionada(null)}
                     onActualizarCuenta={actualizarCuentaLocal}
+                    puedeAbonar={puedeAbonar}
                 />
             )}
 

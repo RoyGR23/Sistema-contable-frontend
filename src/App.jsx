@@ -615,8 +615,7 @@ export default function App() {
             <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="ADM">
               <Usuarios />
             </RutaProtegida>
-          } />
-          <Route path="/cuentas-cobrar" element={<CuentasCobrar />} />
+          <Route path="/cuentas-cobrar" element={<CuentasCobrar usuario={usuarioActivo} />} />
         </Routes>
       </LayoutConMenu>
     </Router>
