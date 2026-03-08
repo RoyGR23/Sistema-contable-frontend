@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from './config';
 
+// ─── Config de semáforos ──────────────────────────────────────────────────────
 const SEMAFORO = {
     Pendiente: { color: '#fd7e14', bg: '#fff3cd', emoji: '🟡', label: 'Pendiente' },
     Pagado: { color: '#198754', bg: '#d1e7dd', emoji: '🟢', label: 'Pagado' },
     Atrasado: { color: '#dc3545', bg: '#f8d7da', emoji: '🔴', label: 'Atrasado' },
     Anulado: { color: '#6c757d', bg: '#e9ecef', emoji: '⚫', label: 'Anulado' },
 };
-
 const ESTADOS = Object.keys(SEMAFORO);
 
 function SemaforoEstado({ estado }) {
@@ -24,13 +24,243 @@ function SemaforoEstado({ estado }) {
     );
 }
 
+// ─── Modal: Realizar Abono ────────────────────────────────────────────────────
+function ModalAbono({ cuenta, onCerrar, onAbonoRealizado }) {
+    const [monto, setMonto] = useState('');
+    const [metodoPago, setMetodoPago] = useState('Efectivo');
+    const [referencia, setReferencia] = useState('');
+    const [notas, setNotas] = useState('');
+    const [cargando, setCargando] = useState(false);
+    const [error, setError] = useState('');
+
+    const saldoRestante = parseFloat(cuenta.saldo_pendiente || 0);
+    const formatRD = v => `RD$ ${parseFloat(v || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}`;
+
+    const handleSubmit = async () => {
+        const montoNum = parseFloat(monto);
+        if (!monto || isNaN(montoNum) || montoNum <= 0) { setError('El monto debe ser mayor a 0.'); return; }
+        if (montoNum > saldoRestante) { setError(`El abono no puede superar el saldo pendiente (${formatRD(saldoRestante)}).`); return; }
+
+        setCargando(true);
+        setError('');
+        try {
+            const resp = await fetch(`${API_BASE_URL}/api/v1/cuentas-cobrar/${cuenta.id}/abonos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ monto_abonado: montoNum, metodo_pago: metodoPago, referencia, notas })
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+                onAbonoRealizado(data);
+                onCerrar();
+            } else {
+                setError(data.detail || 'Error al registrar el abono.');
+            }
+        } catch {
+            setError('Error de conexión.');
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }} onClick={onCerrar}>
+            <div style={{
+                backgroundColor: 'white', borderRadius: '14px', padding: '28px', width: '420px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto'
+            }} onClick={e => e.stopPropagation()}>
+
+                <h3 style={{ margin: '0 0 4px', color: '#2c3e50' }}>💰 Realizar Abono</h3>
+                <p style={{ margin: '0 0 20px', color: '#7f8c8d', fontSize: '13px' }}>
+                    Cliente: <strong>{cuenta.nombre_cliente}</strong> &nbsp;|&nbsp; Saldo: <strong style={{ color: '#dc3545' }}>{formatRD(saldoRestante)}</strong>
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div>
+                        <label style={{ fontSize: '13px', color: '#6c757d', display: 'block', marginBottom: '5px', fontWeight: '600' }}>Monto a abonar *</label>
+                        <input
+                            type="number" min="0.01" step="0.01" max={saldoRestante}
+                            placeholder={`Máximo ${formatRD(saldoRestante)}`}
+                            value={monto} onChange={e => setMonto(e.target.value)}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ced4da', fontSize: '15px', boxSizing: 'border-box', outline: 'none' }}
+                            autoFocus
+                        />
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '13px', color: '#6c757d', display: 'block', marginBottom: '5px', fontWeight: '600' }}>Método de pago</label>
+                        <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ced4da', fontSize: '14px', boxSizing: 'border-box' }}>
+                            <option>Efectivo</option>
+                            <option>Transferencia</option>
+                            <option>Cheque</option>
+                            <option>Tarjeta</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '13px', color: '#6c757d', display: 'block', marginBottom: '5px', fontWeight: '600' }}>Referencia (opcional)</label>
+                        <input type="text" placeholder="# de transacción, cheque…" value={referencia} onChange={e => setReferencia(e.target.value)}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ced4da', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+                    </div>
+                    <div>
+                        <label style={{ fontSize: '13px', color: '#6c757d', display: 'block', marginBottom: '5px', fontWeight: '600' }}>Notas (opcional)</label>
+                        <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ced4da', fontSize: '14px', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }} />
+                    </div>
+                </div>
+
+                {error && <div style={{ marginTop: '12px', padding: '10px 14px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: '8px', fontSize: '13px' }}>{error}</div>}
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                    <button onClick={onCerrar} disabled={cargando}
+                        style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #ced4da', backgroundColor: 'white', cursor: 'pointer', fontWeight: '600', color: '#6c757d' }}>
+                        Cancelar
+                    </button>
+                    <button onClick={handleSubmit} disabled={cargando || !monto}
+                        style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', backgroundColor: cargando || !monto ? '#6c757d' : '#198754', color: 'white', cursor: cargando || !monto ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px' }}>
+                        {cargando ? 'Guardando…' : 'Realizar Abono'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Panel Lateral: Historial de Abonos ──────────────────────────────────────
+function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta }) {
+    const [abonos, setAbonos] = useState([]);
+    const [cargando, setCargando] = useState(true);
+    const [mostrarModalAbono, setMostrarModalAbono] = useState(false);
+
+    const formatRD = v => `RD$ ${parseFloat(v || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}`;
+    const formatFechaHora = f => f ? new Date(f).toLocaleString('es-DO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+    const cargarAbonos = useCallback(async () => {
+        setCargando(true);
+        try {
+            const resp = await fetch(`${API_BASE_URL}/api/v1/cuentas-cobrar/${cuenta.id}/abonos`);
+            const data = await resp.json();
+            if (resp.ok) setAbonos(data.datos || []);
+        } catch { /* silencioso */ } finally {
+            setCargando(false);
+        }
+    }, [cuenta.id]);
+
+    useEffect(() => { cargarAbonos(); }, [cargarAbonos]);
+
+    const handleAbonoRealizado = (data) => {
+        // Recargar abonos y actualizar cuenta padre
+        cargarAbonos();
+        if (data.cuenta_actualizada) {
+            onActualizarCuenta(data.cuenta_actualizada);
+        }
+    };
+
+    const saldoCero = parseFloat(cuenta.saldo_pendiente || 0) <= 0;
+    const cuentaCerrada = cuenta.estado === 'Pagado' || cuenta.estado === 'Anulado';
+
+    return (
+        <>
+            {/* Overlay */}
+            <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 1000 }} onClick={onCerrar} />
+
+            {/* Panel deslizante desde la derecha */}
+            <div style={{
+                position: 'fixed', top: 0, right: 0, bottom: 0, width: '480px',
+                backgroundColor: 'white', zIndex: 1001,
+                boxShadow: '-4px 0 25px rgba(0,0,0,0.2)',
+                display: 'flex', flexDirection: 'column',
+                animation: 'slideIn 0.25s ease'
+            }}>
+                {/* Encabezado */}
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid #e9ecef', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <h3 style={{ margin: 0, color: '#2c3e50', fontSize: '18px' }}>Historial de Abonos</h3>
+                        <p style={{ margin: '4px 0 0', color: '#7f8c8d', fontSize: '13px' }}>{cuenta.nombre_cliente} — {cuenta.ncf || '—'}</p>
+                    </div>
+                    <button onClick={onCerrar} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#6c757d', lineHeight: '1' }}>✕</button>
+                </div>
+
+                {/* Resumen de la cuenta */}
+                <div style={{ padding: '16px 24px', backgroundColor: '#f8f9fa', borderBottom: '1px solid #e9ecef', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Monto Original</div><div style={{ fontSize: '16px', fontWeight: '700', color: '#2c3e50' }}>{formatRD(cuenta.monto_inicial)}</div></div>
+                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Saldo Pendiente</div><div style={{ fontSize: '16px', fontWeight: '700', color: saldoCero ? '#198754' : '#dc3545' }}>{formatRD(cuenta.saldo_pendiente)}</div></div>
+                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Estado</div><div style={{ marginTop: '2px' }}><SemaforoEstado estado={cuenta.estado} /></div></div>
+                </div>
+
+                {/* Botón Realizar Abono */}
+                <div style={{ padding: '12px 24px', borderBottom: '1px solid #e9ecef' }}>
+                    <button
+                        onClick={() => setMostrarModalAbono(true)}
+                        disabled={saldoCero || cuentaCerrada}
+                        title={saldoCero ? 'El saldo ya está en cero' : cuentaCerrada ? 'La cuenta está cerrada' : 'Registrar nuevo abono'}
+                        style={{
+                            padding: '9px 18px', borderRadius: '8px', border: 'none',
+                            backgroundColor: saldoCero || cuentaCerrada ? '#e9ecef' : '#198754',
+                            color: saldoCero || cuentaCerrada ? '#adb5bd' : 'white',
+                            cursor: saldoCero || cuentaCerrada ? 'not-allowed' : 'pointer',
+                            fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                    >
+                        ➕ Realizar Abono
+                        {(saldoCero || cuentaCerrada) && <span style={{ fontSize: '12px', fontWeight: '400' }}>(Cuenta saldada)</span>}
+                    </button>
+                </div>
+
+                {/* Historial */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+                    {cargando ? (
+                        <p style={{ color: '#7f8c8d', textAlign: 'center', marginTop: '40px' }}>Cargando historial…</p>
+                    ) : abonos.length === 0 ? (
+                        <p style={{ color: '#adb5bd', textAlign: 'center', marginTop: '40px' }}>No hay abonos registrados aún.</p>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {abonos.map(a => (
+                                <div key={a.id} style={{
+                                    border: '1px solid #e9ecef', borderRadius: '10px', padding: '14px 16px',
+                                    backgroundColor: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                        <span style={{ fontSize: '18px', fontWeight: '700', color: '#198754' }}>{formatRD(a.monto_abonado)}</span>
+                                        <span style={{
+                                            fontSize: '12px', fontWeight: '600', padding: '3px 10px', borderRadius: '12px',
+                                            backgroundColor: '#e8f5e9', color: '#2e7d32'
+                                        }}>{a.metodo_pago}</span>
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#6c757d' }}>{formatFechaHora(a.creado_en)}</div>
+                                    {a.referencia && <div style={{ fontSize: '12px', color: '#495057', marginTop: '4px' }}>Ref: <strong>{a.referencia}</strong></div>}
+                                    {a.notas && <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '4px', fontStyle: 'italic' }}>"{a.notas}"</div>}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Modal de nuevo abono */}
+            {mostrarModalAbono && (
+                <ModalAbono
+                    cuenta={cuenta}
+                    onCerrar={() => setMostrarModalAbono(false)}
+                    onAbonoRealizado={handleAbonoRealizado}
+                />
+            )}
+
+            <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+        </>
+    );
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 export default function CuentasCobrar() {
     const [cuentas, setCuentas] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [mensaje, setMensaje] = useState('');
     const [filtroEstado, setFiltroEstado] = useState('Todos');
     const [busqueda, setBusqueda] = useState('');
-    const [actualizando, setActualizando] = useState(null); // id de la fila actualizandose
+    const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
 
     const cargarCuentas = useCallback(async () => {
         setCargando(true);
@@ -47,26 +277,12 @@ export default function CuentasCobrar() {
 
     useEffect(() => { cargarCuentas(); }, [cargarCuentas]);
 
-    const cambiarEstado = async (id, nuevoEstado) => {
-        setActualizando(id);
-        try {
-            const resp = await fetch(`${API_BASE_URL}/api/v1/cuentas-cobrar/${id}/estado`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estado: nuevoEstado })
-            });
-            if (resp.ok) {
-                setCuentas(prev => prev.map(c => c.id === id ? { ...c, estado: nuevoEstado } : c));
-                setMensaje('Estado actualizado correctamente.');
-                setTimeout(() => setMensaje(''), 3000);
-            } else {
-                const err = await resp.json();
-                setMensaje(`Error: ${err.detail}`);
-            }
-        } catch {
-            setMensaje('Error de conexión.');
-        } finally {
-            setActualizando(null);
+    // Cuando el panel actualiza la cuenta (abono realizado), reflejar los cambios
+    const actualizarCuentaLocal = (cuentaActualizada) => {
+        setCuentas(prev => prev.map(c => c.id === cuentaActualizada.id ? { ...c, ...cuentaActualizada } : c));
+        // Si la cuenta seleccionada es la misma, actualizar también su panel
+        if (cuentaSeleccionada?.id === cuentaActualizada.id) {
+            setCuentaSeleccionada(prev => ({ ...prev, ...cuentaActualizada }));
         }
     };
 
@@ -80,7 +296,6 @@ export default function CuentasCobrar() {
         return coincideEstado && coincideBusqueda;
     });
 
-    // Totales resumen
     const totalPendiente = cuentas.filter(c => c.estado === 'Pendiente').reduce((s, c) => s + parseFloat(c.saldo_pendiente || 0), 0);
     const totalAtrasado = cuentas.filter(c => c.estado === 'Atrasado').reduce((s, c) => s + parseFloat(c.saldo_pendiente || 0), 0);
     const totalCuentas = cuentas.length;
@@ -91,7 +306,7 @@ export default function CuentasCobrar() {
     return (
         <div style={{ padding: '30px', fontFamily: 'Arial, sans-serif' }}>
             <h1 style={{ color: '#2c3e50', marginBottom: '5px' }}>Cuentas por Cobrar</h1>
-            <p style={{ color: '#7f8c8d', marginBottom: '25px' }}>Gestión de ventas a crédito y seguimiento de pagos.</p>
+            <p style={{ color: '#7f8c8d', marginBottom: '25px' }}>Gestión de ventas a crédito y seguimiento de pagos. <em>Haz clic en una fila para ver los abonos.</em></p>
 
             {/* Tarjetas resumen */}
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '28px' }}>
@@ -111,32 +326,22 @@ export default function CuentasCobrar() {
 
             {/* Filtros */}
             <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input
-                    type="text"
-                    placeholder="🔍 Buscar cliente, NCF..."
-                    value={busqueda}
-                    onChange={e => setBusqueda(e.target.value)}
-                    style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #ced4da', fontSize: '14px', width: '260px', outline: 'none' }}
-                />
+                <input type="text" placeholder="🔍 Buscar cliente, NCF..."
+                    value={busqueda} onChange={e => setBusqueda(e.target.value)}
+                    style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #ced4da', fontSize: '14px', width: '260px', outline: 'none' }} />
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {['Todos', ...ESTADOS].map(e => (
-                        <button
-                            key={e}
-                            onClick={() => setFiltroEstado(e)}
-                            style={{
-                                padding: '8px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
-                                backgroundColor: filtroEstado === e ? '#2c3e50' : '#e9ecef',
-                                color: filtroEstado === e ? 'white' : '#495057',
-                                transition: 'all 0.2s'
-                            }}
-                        >
+                        <button key={e} onClick={() => setFiltroEstado(e)} style={{
+                            padding: '8px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                            backgroundColor: filtroEstado === e ? '#2c3e50' : '#e9ecef',
+                            color: filtroEstado === e ? 'white' : '#495057', transition: 'all 0.2s'
+                        }}>
                             {e === 'Todos' ? 'Todos' : `${SEMAFORO[e].emoji} ${e}`}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* Mensaje */}
             {mensaje && (
                 <div style={{ padding: '12px 18px', backgroundColor: '#d1e7dd', color: '#0a3622', borderRadius: '8px', marginBottom: '18px', fontSize: '14px', fontWeight: '600' }}>
                     {mensaje}
@@ -153,14 +358,27 @@ export default function CuentasCobrar() {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                                {['NCF', 'Cliente', 'RNC/Cédula', 'Monto Original', 'Saldo Pendiente', 'Vencimiento', 'Estado', 'Acción'].map(h => (
+                                {['NCF', 'Cliente', 'RNC/Cédula', 'Monto Original', 'Saldo Pendiente', 'Vencimiento', 'Estado'].map(h => (
                                     <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '13px', color: '#6c757d', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody>
                             {cuentasFiltradas.map((c, i) => (
-                                <tr key={c.id} style={{ backgroundColor: i % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #f0f0f0', transition: 'background-color 0.15s' }}>
+                                <tr
+                                    key={c.id}
+                                    onClick={() => setCuentaSeleccionada(c)}
+                                    style={{
+                                        backgroundColor: cuentaSeleccionada?.id === c.id ? '#e8f4f8' : (i % 2 === 0 ? 'white' : '#fafafa'),
+                                        borderBottom: '1px solid #f0f0f0',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.15s',
+                                        outline: cuentaSeleccionada?.id === c.id ? '2px solid #3498db' : 'none',
+                                        outlineOffset: cuentaSeleccionada?.id === c.id ? '-2px' : '0'
+                                    }}
+                                    onMouseEnter={e => { if (cuentaSeleccionada?.id !== c.id) e.currentTarget.style.backgroundColor = '#f0f7ff'; }}
+                                    onMouseLeave={e => { if (cuentaSeleccionada?.id !== c.id) e.currentTarget.style.backgroundColor = i % 2 === 0 ? 'white' : '#fafafa'; }}
+                                >
                                     <td style={{ padding: '14px 16px', fontSize: '13px', fontFamily: 'monospace', color: '#495057' }}>{c.ncf || '—'}</td>
                                     <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '600', color: '#2c3e50' }}>{c.nombre_cliente}</td>
                                     <td style={{ padding: '14px 16px', fontSize: '13px', color: '#6c757d' }}>{c.rnc_cedula}</td>
@@ -168,28 +386,21 @@ export default function CuentasCobrar() {
                                     <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: '700', color: parseFloat(c.saldo_pendiente) > 0 ? '#dc3545' : '#198754' }}>{formatRD(c.saldo_pendiente)}</td>
                                     <td style={{ padding: '14px 16px', fontSize: '13px', color: '#6c757d' }}>{formatFecha(c.fecha_vencimiento)}</td>
                                     <td style={{ padding: '14px 16px' }}><SemaforoEstado estado={c.estado} /></td>
-                                    <td style={{ padding: '14px 16px' }}>
-                                        <select
-                                            value={c.estado}
-                                            disabled={actualizando === c.id}
-                                            onChange={e => cambiarEstado(c.id, e.target.value)}
-                                            style={{
-                                                padding: '6px 10px', borderRadius: '6px', border: '1px solid #ced4da',
-                                                fontSize: '13px', cursor: 'pointer', backgroundColor: 'white',
-                                                opacity: actualizando === c.id ? 0.5 : 1
-                                            }}
-                                        >
-                                            {ESTADOS.map(estado => (
-                                                <option key={estado} value={estado}>{SEMAFORO[estado].emoji} {estado}</option>
-                                            ))}
-                                        </select>
-                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 )}
             </div>
+
+            {/* Panel lateral de abonos */}
+            {cuentaSeleccionada && (
+                <PanelAbonos
+                    cuenta={cuentaSeleccionada}
+                    onCerrar={() => setCuentaSeleccionada(null)}
+                    onActualizarCuenta={actualizarCuentaLocal}
+                />
+            )}
         </div>
     );
 }
