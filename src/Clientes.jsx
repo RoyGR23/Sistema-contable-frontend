@@ -556,8 +556,7 @@ export default function Clientes({ usuario }) {
                                 {clientesFiltrados.map((cliente) => (
                                     <tr key={cliente.rnc_cedula} style={{ borderBottom: '1px solid #e9ecef', color: '#34495e' }}>
                                         <td
-                                            className="cliente-nombre-celda"
-                                            style={puedeSeleccionar ? { cursor: 'pointer', color: '#007bff', fontWeight: 'bold', textDecoration: 'underline' } : {}}
+                                            className={`cliente-nombre-celda ${puedeSeleccionar ? 'clickable' : ''}`}
                                             onClick={() => {
                                                 if (puedeSeleccionar) {
                                                     setClienteEditando(cliente);

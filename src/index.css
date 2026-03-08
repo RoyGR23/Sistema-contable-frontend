@@ -23,7 +23,7 @@ html {
   transition: all 0.2s ease;
 }
 
-.cliente-nombre-celda:hover {
+.cliente-nombre-celda.clickable:hover {
   color: #007bff;
   text-decoration: underline;
   cursor: pointer;
