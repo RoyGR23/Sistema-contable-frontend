@@ -301,12 +301,6 @@ function LayoutConMenu({ children, onLogout, usuario }) {
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// --- DATOS ESTATICOS (RESUMEN) ---
-const resumen = {
-  cuentasPorCobrarVigentes: 12500.50,
-  cuentasPorCobrarVencidas: 3200.00
-};
-
 // --- 2. COMPONENTE DEL PANEL PRINCIPAL (DASHBOARD) ---
 function PantallaInicio() {
   const [datosVentasMes, setDatosVentasMes] = useState([
@@ -318,6 +312,8 @@ function PantallaInicio() {
   const [totalClientes, setTotalClientes] = useState(0);
   const [cargandoClientes, setCargandoClientes] = useState(true);
   const [sinItbis, setSinItbis] = useState(false);
+  const [cxcVigentes, setCxcVigentes] = useState(0);
+  const [cxcVencidas, setCxcVencidas] = useState(0);
 
   useEffect(() => {
     const cargarVentas = async () => {
@@ -346,8 +342,29 @@ function PantallaInicio() {
       }
     };
 
+    const cargarCuentasCobrar = async () => {
+      try {
+        const resp = await fetch(`${API_BASE_URL}/api/v1/cuentas-cobrar`);
+        const data = await resp.json();
+        if (resp.ok) {
+          const cuentas = data.datos || [];
+          const vigentes = cuentas
+            .filter(c => c.estado === 'Pendiente')
+            .reduce((s, c) => s + parseFloat(c.saldo_pendiente || 0), 0);
+          const vencidas = cuentas
+            .filter(c => c.estado === 'Atrasado')
+            .reduce((s, c) => s + parseFloat(c.saldo_pendiente || 0), 0);
+          setCxcVigentes(vigentes);
+          setCxcVencidas(vencidas);
+        }
+      } catch (error) {
+        console.error('Error al cargar cuentas por cobrar:', error);
+      }
+    };
+
     cargarVentas();
     cargarTotalClientes();
+    cargarCuentasCobrar();
   }, []);
 
   return (
@@ -366,11 +383,11 @@ function PantallaInicio() {
           </h3>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <span style={{ color: '#34495e', fontWeight: 'bold' }}>Vigentes:</span>
-            <span style={{ fontSize: '20px', color: '#2ecc71', fontWeight: 'bold' }}>RD$ {resumen.cuentasPorCobrarVigentes.toLocaleString()}</span>
+            <span style={{ fontSize: '20px', color: '#2ecc71', fontWeight: 'bold' }}>RD$ {cxcVigentes.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: '#34495e', fontWeight: 'bold' }}>Vencidas:</span>
-            <span style={{ fontSize: '20px', color: '#e74c3c', fontWeight: 'bold' }}>RD$ {resumen.cuentasPorCobrarVencidas.toLocaleString()}</span>
+            <span style={{ fontSize: '20px', color: '#e74c3c', fontWeight: 'bold' }}>RD$ {cxcVencidas.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
           </div>
         </div>
 
