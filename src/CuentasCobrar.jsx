@@ -541,6 +541,14 @@ export default function CuentasCobrar() {
                     onActualizarCuenta={actualizarCuentaLocal}
                 />
             )}
+
+            {/* Modal para Exportar PDF */}
+            {mostrarModalPDF && (
+                <ModalExportarPDF
+                    cuentas={cuentas}
+                    onCerrar={() => setMostrarModalPDF(false)}
+                />
+            )}
         </div>
     );
 }
