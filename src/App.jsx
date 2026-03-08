@@ -8,6 +8,7 @@ import Descuentos from './Descuentos';
 import Roles from './Roles';
 import Usuarios from './Usuarios';
 import CuentasCobrar from './CuentasCobrar';
+import Ingresos from './Ingresos';
 import Login from './Login';
 import logoImg from './assets/logo.jpg';
 import { API_BASE_URL } from './config';
@@ -91,8 +92,10 @@ function LayoutConMenu({ children, onLogout, usuario }) {
   const verUsuarios = tienePerm(permisos_acciones, 'USU');
   const mostrarMenuAdmin = verDescuentos || verRoles || verUsuarios;
 
-  // Verificar permiso solo para la opción interna Cuentas por Cobrar
+  // Verificar permiso solo para la opción interna Cuentas por Cobrar e Ingresos
   const verCuentasCobrar = tienePermiso(permisos_acciones, 'cuentas_cobrar_ver');
+  const verIngresos = tienePermiso(permisos_acciones, 'ingresos_ver');
+  const mostrarMenuContabilidad = verCuentasCobrar || verIngresos;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', width: '100%', backgroundColor: '#f4f6f9' }}>
@@ -218,9 +221,11 @@ function LayoutConMenu({ children, onLogout, usuario }) {
                     Cuentas por cobrar
                   </Link>
                 )}
-                <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
-                  Ingresos
-                </div>
+                {verIngresos && (
+                  <Link to="/ingresos" style={{ ...estiloEnlace('/ingresos'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/ingresos' ? '#e9ecef' : 'transparent', color: location.pathname === '/ingresos' ? '#007bff' : '#495057' }}>
+                    Ingresos
+                  </Link>
+                )}
                 <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
                   Gastos
                 </div>
