@@ -393,7 +393,7 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta, puedeAbonar }) {
             {mostrarModalAutorizacion && (
                 <ModalAutorizacion
                     permiso_requerido="cuentas_cobrar_abonar"
-                    descripcionAccion={`realizar un abono para el cliente ${cuenta.nombre_cliente}`}
+                    descripcionAccion={`Realizar abono`}
                     onAutorizado={() => {
                         setMostrarModalAutorizacion(false);
                         setMostrarModalAbono(true);
