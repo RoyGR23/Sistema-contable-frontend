@@ -35,7 +35,8 @@ const tienePerm = (permisos_acciones, codigo) => {
     'CLI': 'clientes_',
     'INV': 'inventario_',
     'CAT': 'categorias_',
-    'CXC': 'cuentas_cobrar_'
+    'CXC': 'cuentas_cobrar_',
+    'ING': 'ingresos_'
   };
 
   const prefix = prefixMap[codigo];
@@ -610,6 +611,11 @@ export default function App() {
           <Route path="/categorias" element={
             <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="CAT">
               <Categorias usuario={usuarioActivo} />
+            </RutaProtegida>
+          } />
+          <Route path="/ingresos" element={
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="ING">
+              <Ingresos usuario={usuarioActivo} />
             </RutaProtegida>
           } />
           <Route path="/descuentos" element={
