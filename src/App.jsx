@@ -443,11 +443,13 @@ export default function App() {
   const handleLoginExitoso = (datosUsuario) => {
     setUsuarioActivo(datosUsuario);
     sessionStorage.setItem('usuario_dvestilo', JSON.stringify(datosUsuario));
+    window.history.replaceState(null, '', '/');
   };
 
   const handleLogout = () => {
     setUsuarioActivo(null);
     sessionStorage.removeItem('usuario_dvestilo');
+    window.history.replaceState(null, '', '/');
   };
 
   if (esPestanaDuplicada) {

@@ -88,7 +88,7 @@ export default function Login({ onLoginExitoso }) {
                                 name="email"
                                 value={credenciales.email}
                                 onChange={handleChange}
-                                placeholder="ejemplo@DVestilo.com"
+                                placeholder="ejemplo@correo.com"
                                 style={{
                                     padding: '14px', borderRadius: '8px', border: '1px solid #bdc3c7', fontSize: '16px',
                                     outline: 'none', transition: 'border-color 0.3s'
@@ -107,7 +107,7 @@ export default function Login({ onLoginExitoso }) {
                                 name="password"
                                 value={credenciales.password}
                                 onChange={handleChange}
-                                placeholder="••••••••"
+                                placeholder="contraseña"
                                 style={{
                                     padding: '14px', borderRadius: '8px', border: '1px solid #bdc3c7', fontSize: '16px',
                                     outline: 'none', transition: 'border-color 0.3s'
