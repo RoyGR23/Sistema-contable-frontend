@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from './config';
+import ModalAutorizacion from './ModalAutorizacion';
 
 // ─── Config de semáforos ──────────────────────────────────────────────────────
 const SEMAFORO = {
@@ -266,6 +267,7 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta, puedeAbonar }) {
     const [abonos, setAbonos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [mostrarModalAbono, setMostrarModalAbono] = useState(false);
+    const [mostrarModalAutorizacion, setMostrarModalAutorizacion] = useState(false);
 
     const formatRD = v => `RD$ ${parseFloat(v || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}`;
     const formatFechaHora = f => f ? new Date(f).toLocaleString('es-DO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
@@ -324,25 +326,29 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta, puedeAbonar }) {
                 </div>
 
                 {/* Botón Realizar Abono */}
-                {puedeAbonar && (
-                    <div style={{ padding: '12px 24px', borderBottom: '1px solid #e9ecef' }}>
-                        <button
-                            onClick={() => setMostrarModalAbono(true)}
-                            disabled={saldoCero || cuentaCerrada}
-                            title={saldoCero ? 'El saldo ya está en cero' : cuentaCerrada ? 'La cuenta está cerrada' : 'Registrar nuevo abono'}
-                            style={{
-                                padding: '9px 18px', borderRadius: '8px', border: 'none',
-                                backgroundColor: saldoCero || cuentaCerrada ? '#e9ecef' : '#198754',
-                                color: saldoCero || cuentaCerrada ? '#adb5bd' : 'white',
-                                cursor: saldoCero || cuentaCerrada ? 'not-allowed' : 'pointer',
-                                fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px'
-                            }}
-                        >
-                            Realizar Abono
-                            {(saldoCero || cuentaCerrada) && <span style={{ fontSize: '12px', fontWeight: '400' }}>(Cuenta saldada)</span>}
-                        </button>
-                    </div>
-                )}
+                <div style={{ padding: '12px 24px', borderBottom: '1px solid #e9ecef' }}>
+                    <button
+                        onClick={() => {
+                            if (puedeAbonar) {
+                                setMostrarModalAbono(true);
+                            } else {
+                                setMostrarModalAutorizacion(true);
+                            }
+                        }}
+                        disabled={saldoCero || cuentaCerrada}
+                        title={saldoCero ? 'El saldo ya está en cero' : cuentaCerrada ? 'La cuenta está cerrada' : 'Registrar nuevo abono'}
+                        style={{
+                            padding: '9px 18px', borderRadius: '8px', border: 'none',
+                            backgroundColor: saldoCero || cuentaCerrada ? '#e9ecef' : '#198754',
+                            color: saldoCero || cuentaCerrada ? '#adb5bd' : 'white',
+                            cursor: saldoCero || cuentaCerrada ? 'not-allowed' : 'pointer',
+                            fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                    >
+                        Realizar Abono
+                        {(saldoCero || cuentaCerrada) && <span style={{ fontSize: '12px', fontWeight: '400' }}>(Cuenta saldada)</span>}
+                    </button>
+                </div>
 
                 {/* Historial */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
@@ -380,6 +386,19 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta, puedeAbonar }) {
                     cuenta={cuenta}
                     onCerrar={() => setMostrarModalAbono(false)}
                     onAbonoRealizado={handleAbonoRealizado}
+                />
+            )}
+
+            {/* Modal de autorización */}
+            {mostrarModalAutorizacion && (
+                <ModalAutorizacion
+                    permiso_requerido="cuentas_cobrar_abonar"
+                    descripcionAccion={`realizar un abono para el cliente ${cuenta.nombre_cliente}`}
+                    onAutorizado={() => {
+                        setMostrarModalAutorizacion(false);
+                        setMostrarModalAbono(true);
+                    }}
+                    onCancelar={() => setMostrarModalAutorizacion(false)}
                 />
             )}
 
