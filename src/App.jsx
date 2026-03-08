@@ -486,7 +486,7 @@ export default function App() {
           } />
           <Route path="/inventario" element={
             <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="INV">
-              <Inventario />
+              <Inventario usuario={usuarioActivo} />
             </RutaProtegida>
           } />
           <Route path="/categorias" element={

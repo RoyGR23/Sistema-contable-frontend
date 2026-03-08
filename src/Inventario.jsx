@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from './config';
+import ModalAutorizacion from './ModalAutorizacion';
 
-export default function Inventario() {
+export default function Inventario({ usuario }) {
     const [inventario, setInventario] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [mensaje, setMensaje] = useState("");
@@ -21,6 +22,12 @@ export default function Inventario() {
     const [prendasConfig, setPrendasConfig] = useState([]);
     const [coloresConfig, setColoresConfig] = useState([]);
     const [tallasConfig, setTallasConfig] = useState([]);
+
+    const [modalAuth, setModalAuth] = useState(null);
+    const permisos_acciones = usuario?.permisos_acciones || [];
+    const puedeAgregar = permisos_acciones.includes('inventario_agregar');
+    const puedeEditar = permisos_acciones.includes('inventario_editar');
+    const puedeEliminar = permisos_acciones.includes('inventario_eliminar');
 
     const mostrarMensajeTemporal = (texto, error = false) => {
         setMensaje(texto);
@@ -195,6 +202,22 @@ export default function Inventario() {
         }
     };
 
+    const eliminarProducto = async (item) => {
+        if (!window.confirm(`¿Estás seguro de eliminar permanentemente ${item.nombre} - ${item.talla} ${item.color}?`)) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/v1/inventario/${item.inventario_id}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Error eliminando producto");
+            mostrarMensajeTemporal("Producto eliminado exitosamente.");
+            cargarInventario();
+        } catch (error) {
+            mostrarMensajeTemporal(error.message, true);
+        }
+    };
+
     const manejarOrden = (columna) => {
         if (ordenColumna === columna) {
             setOrdenDireccion(ordenDireccion === 'asc' ? 'desc' : 'asc');
@@ -236,7 +259,24 @@ export default function Inventario() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: '1200px' }}>
                 <h1 style={{ color: '#2c3e50', margin: 0, fontSize: '24px' }}>Gestión de Inventario</h1>
                 <button
-                    onClick={() => setMostrarModal(true)}
+                    onClick={() => {
+                        if (puedeAgregar) {
+                            setMostrarModal(true);
+                            setEditandoItem(null);
+                            setFormulario({ prenda: '', color: '', talla: '', precio: '', stock: '' });
+                        } else {
+                            setModalAuth({
+                                permiso_requerido: 'inventario_agregar',
+                                descripcionAccion: 'Agregar nuevo producto al inventario',
+                                onAutorizado: () => {
+                                    setModalAuth(null);
+                                    setMostrarModal(true);
+                                    setEditandoItem(null);
+                                    setFormulario({ prenda: '', color: '', talla: '', precio: '', stock: '' });
+                                }
+                            });
+                        }
+                    }}
                     style={{ padding: '10px 20px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
                 >
                     + Nuevo Producto
@@ -386,9 +426,38 @@ export default function Inventario() {
                                         </span>
                                     </td>
                                     <td style={{ padding: '15px' }}>{item.ubicacion}</td>
-                                    <td style={{ padding: '15px', textAlign: 'center' }}>
-                                        <button onClick={() => iniciarEdicion(item)} style={{ padding: '6px 10px', backgroundColor: '#f39c12', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '5px' }} title="Editar">
+                                    <td style={{ padding: '15px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                        <button onClick={() => {
+                                            if (puedeEditar) {
+                                                iniciarEdicion(item);
+                                            } else {
+                                                setModalAuth({
+                                                    permiso_requerido: 'inventario_editar',
+                                                    descripcionAccion: 'Editar detalles del producto',
+                                                    onAutorizado: () => {
+                                                        setModalAuth(null);
+                                                        iniciarEdicion(item);
+                                                    }
+                                                });
+                                            }
+                                        }} style={{ padding: '6px 10px', backgroundColor: '#f39c12', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '5px' }} title="Editar">
                                             ✏️
+                                        </button>
+                                        <button onClick={() => {
+                                            if (puedeEliminar) {
+                                                eliminarProducto(item);
+                                            } else {
+                                                setModalAuth({
+                                                    permiso_requerido: 'inventario_eliminar',
+                                                    descripcionAccion: 'Eliminar producto permanentemente',
+                                                    onAutorizado: () => {
+                                                        setModalAuth(null);
+                                                        eliminarProducto(item);
+                                                    }
+                                                });
+                                            }
+                                        }} style={{ padding: '6px 10px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }} title="Eliminar">
+                                            🗑️
                                         </button>
                                     </td>
                                 </tr>
@@ -403,6 +472,15 @@ export default function Inventario() {
                     </tbody>
                 </table>
             </div>
+
+            {modalAuth && (
+                <ModalAutorizacion
+                    permisoRequerido={modalAuth.permiso_requerido}
+                    descripcionAccion={modalAuth.descripcionAccion}
+                    onAutorizado={modalAuth.onAutorizado}
+                    onCancelar={() => setModalAuth(null)}
+                />
+            )}
         </div>
     );
 }
