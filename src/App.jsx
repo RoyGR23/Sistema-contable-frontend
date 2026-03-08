@@ -11,36 +11,46 @@ import Login from './Login';
 import logoImg from './assets/logo.jpg';
 import { API_BASE_URL } from './config';
 
-// function tienePerm(permisos, codigo) ...
-// Cambiado para trabajar con el nuevo arreglo `permisos_acciones`:
-function tienePerm(permisos_acciones, codigo) {
-  // Si no existe la propiedad o no es un arreglo, damos paso por compatibilidad/Admin original
-  if (!permisos_acciones || !Array.isArray(permisos_acciones)) return true;
+// --- CHECK de PERMISOS POR ACCIÓN ---
+const tienePermiso = (permisos_acciones, permisoBuscado) => {
+  return Array.isArray(permisos_acciones) && permisos_acciones.includes(permisoBuscado);
+};
 
+// Función genérica por si se mantiene código anterior
+const tienePerm = (permisos_acciones, codigo) => {
+  // Para simplificar la compatibilidad con el código actual que usa códigos
+  // retornaremos true solo si el usuario tiene el permiso global "administracion_control_total",
+  // o si el módulo no es de administración y tiene algún permiso de su grupo.
+  if (["DES", "ROL", "USU", "ADM"].includes(codigo)) {
+    return tienePermiso(permisos_acciones, "administracion_control_total");
+  }
+
+  if (!permisos_acciones || !Array.isArray(permisos_acciones)) return false;
+
+  // Mapeo temporal para no romper la navegación existente
   const prefixMap = {
-    'INI': 'panel',
-    'CAJ': 'caja',
-    'CLI': 'clientes',
-    'INV': 'inventario',
-    'CAT': 'categorias',
-    'DES': 'descuentos',
-    'ROL': 'roles',
-    'USU': 'usuarios'
+    'CAJ': 'caja_',
+    'CLI': 'clientes_',
+    'INV': 'inventario_',
+    'CAT': 'categorias_'
   };
 
   const prefix = prefixMap[codigo];
-  if (!prefix) return true;
+  if (prefix) {
+    return permisos_acciones.some(p => p.startsWith(prefix));
+  }
 
-  return permisos_acciones.some(p => p.startsWith(prefix));
-}
+  // Fallback: Siempre permitir Dashboard 'INI'
+  return codigo === 'INI';
+};
 
-// Componente que protege una ruta: si el usuario no tiene permiso, redirige al inicio
-function RutaProtegida({ children, permisos_acciones, codigo }) {
+// Validación de Rutas
+const RutaProtegida = ({ children, codigo, permisos_acciones }) => {
   if (!tienePerm(permisos_acciones, codigo)) {
     return <Navigate to="/" replace />;
   }
   return children;
-}
+};
 
 // --- 1. COMPONENTE DEL MENÚ LATERAL (SIDEBAR) ---
 function LayoutConMenu({ children, onLogout, usuario }) {
@@ -174,7 +184,7 @@ function LayoutConMenu({ children, onLogout, usuario }) {
           )}
 
           {/* Menú Desplegable Administración */}
-          {mostrarMenuAdmin && (
+          {tienePerm(permisos_acciones, 'ADM') && (
             <div>
               <div
                 onClick={() => {
@@ -195,21 +205,15 @@ function LayoutConMenu({ children, onLogout, usuario }) {
 
               {menuAbierto && administracionAbierto && (
                 <div style={{ backgroundColor: '#f8f9fa', padding: '5px 0' }}>
-                  {verDescuentos && (
-                    <Link to="/descuentos" style={{ ...estiloEnlace('/descuentos'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/descuentos' ? '#e9ecef' : 'transparent', color: location.pathname === '/descuentos' ? '#007bff' : '#495057' }}>
-                      Descuentos
-                    </Link>
-                  )}
-                  {verRoles && (
-                    <Link to="/roles" style={{ ...estiloEnlace('/roles'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/roles' ? '#e9ecef' : 'transparent', color: location.pathname === '/roles' ? '#007bff' : '#495057' }}>
-                      Roles y Permisos
-                    </Link>
-                  )}
-                  {verUsuarios && (
-                    <Link to="/usuarios" style={{ ...estiloEnlace('/usuarios'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/usuarios' ? '#e9ecef' : 'transparent', color: location.pathname === '/usuarios' ? '#007bff' : '#495057' }}>
-                      Usuarios
-                    </Link>
-                  )}
+                  <Link to="/descuentos" style={{ ...estiloEnlace('/descuentos'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/descuentos' ? '#e9ecef' : 'transparent', color: location.pathname === '/descuentos' ? '#007bff' : '#495057' }}>
+                    Descuentos
+                  </Link>
+                  <Link to="/roles" style={{ ...estiloEnlace('/roles'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/roles' ? '#e9ecef' : 'transparent', color: location.pathname === '/roles' ? '#007bff' : '#495057' }}>
+                    Roles y Permisos
+                  </Link>
+                  <Link to="/usuarios" style={{ ...estiloEnlace('/usuarios'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/usuarios' ? '#e9ecef' : 'transparent', color: location.pathname === '/usuarios' ? '#007bff' : '#495057' }}>
+                    Usuarios
+                  </Link>
                 </div>
               )}
             </div>
@@ -495,17 +499,17 @@ export default function App() {
             </RutaProtegida>
           } />
           <Route path="/descuentos" element={
-            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="DES">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="ADM">
               <Descuentos />
             </RutaProtegida>
           } />
           <Route path="/roles" element={
-            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="ROL">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="ADM">
               <Roles />
             </RutaProtegida>
           } />
           <Route path="/usuarios" element={
-            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="USU">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="ADM">
               <Usuarios />
             </RutaProtegida>
           } />
