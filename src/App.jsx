@@ -405,6 +405,7 @@ function PantallaInicio() {
 export default function App() {
   const [usuarioActivo, setUsuarioActivo] = useState(null);
   const [esPestanaDuplicada, setEsPestanaDuplicada] = useState(false);
+  const [motivoCierre, setMotivoCierre] = useState(null); // 'sesion_desplazada' | 'cuenta_desactivada'
 
   // Lógica de Pestaña Única (BroadcastChannel)
   useEffect(() => {
@@ -444,7 +445,40 @@ export default function App() {
     }
   }, []);
 
+  // Polling de sesión única: verifica cada 30 segundos si la sesión sigue siendo válida
+  useEffect(() => {
+    if (!usuarioActivo) return;
+
+    const verificarSesion = async () => {
+      try {
+        const respuesta = await fetch(`${API_BASE_URL}/api/v1/auth/check-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario_id: usuarioActivo.id,
+            session_token: usuarioActivo.session_token
+          })
+        });
+        if (!respuesta.ok) return; // Error de red, no cerramos sesión
+        const data = await respuesta.json();
+        if (!data.valida) {
+          setMotivoCierre(data.razon);
+          setUsuarioActivo(null);
+          sessionStorage.removeItem('usuario_dvestilo');
+          window.history.replaceState(null, '', '/');
+        }
+      } catch (e) {
+        // Error de red: no hacemos nada para no desconectar en mal WiFi
+        console.warn('No se pudo verificar la sesión:', e);
+      }
+    };
+
+    const intervalo = setInterval(verificarSesion, 30000); // cada 30 segundos
+    return () => clearInterval(intervalo);
+  }, [usuarioActivo]);
+
   const handleLoginExitoso = (datosUsuario) => {
+    setMotivoCierre(null);
     setUsuarioActivo(datosUsuario);
     sessionStorage.setItem('usuario_dvestilo', JSON.stringify(datosUsuario));
     window.history.replaceState(null, '', '/');
@@ -469,7 +503,21 @@ export default function App() {
 
   // Si no hay usuario activo, bloqueamos la app y forzamos el login
   if (!usuarioActivo) {
-    return <Login onLoginExitoso={handleLoginExitoso} />;
+    return (
+      <>
+        {motivoCierre === 'sesion_desplazada' && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, backgroundColor: '#fff3cd', color: '#856404', padding: '14px 24px', zIndex: 9999, textAlign: 'center', fontSize: '15px', borderBottom: '2px solid #ffc107', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            🚨 <strong>Tu sesión fue cerrada</strong> porque iniciaste sesión en otro dispositivo.
+          </div>
+        )}
+        {motivoCierre === 'cuenta_desactivada' && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, backgroundColor: '#f8d7da', color: '#721c24', padding: '14px 24px', zIndex: 9999, textAlign: 'center', fontSize: '15px', borderBottom: '2px solid #f5c6cb', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            🚫 <strong>Tu cuenta fue desactivada.</strong> Contacta al administrador.
+          </div>
+        )}
+        <Login onLoginExitoso={handleLoginExitoso} />
+      </>
+    );
   }
 
   return (
