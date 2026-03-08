@@ -305,20 +305,20 @@ export default function CuentasCobrar() {
 
     return (
         <div style={{ padding: '30px', fontFamily: 'Arial, sans-serif' }}>
-            <h1 style={{ color: '#2c3e50', marginBottom: '5px' }}>Cuentas por Cobrar</h1>
+            <h1 style={{ color: '#2c3e50', marginBottom: '24px' }}>Cuentas por Cobrar</h1>
             {/* Tarjetas resumen */}
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
                 <div style={{ flex: 1, minWidth: '150px', backgroundColor: '#fff', padding: '12px 16px', borderRadius: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', borderLeft: '4px solid #3498db' }}>
                     <div style={{ color: '#7f8c8d', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Cuentas</div>
-                    <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#2c3e50', lineHeight: '1.2' }}>{totalCuentas}</div>
+                    <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#2c3e50', lineHeight: '1.2', marginTop: '6px' }}>{totalCuentas}</div>
                 </div>
                 <div style={{ flex: 1, minWidth: '150px', backgroundColor: '#fff', padding: '12px 16px', borderRadius: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', borderLeft: '4px solid #fd7e14' }}>
                     <div style={{ color: '#7f8c8d', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>Saldo Pendiente</div>
-                    <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#fd7e14', lineHeight: '1.4' }}>{formatRD(totalPendiente)}</div>
+                    <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#fd7e14', lineHeight: '1.4', marginTop: '6px' }}>{formatRD(totalPendiente)}</div>
                 </div>
                 <div style={{ flex: 1, minWidth: '150px', backgroundColor: '#fff', padding: '12px 16px', borderRadius: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', borderLeft: '4px solid #dc3545' }}>
                     <div style={{ color: '#7f8c8d', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>Saldo Atrasado</div>
-                    <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#dc3545', lineHeight: '1.4' }}>{formatRD(totalAtrasado)}</div>
+                    <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#dc3545', lineHeight: '1.4', marginTop: '6px' }}>{formatRD(totalAtrasado)}</div>
                 </div>
             </div>
 
