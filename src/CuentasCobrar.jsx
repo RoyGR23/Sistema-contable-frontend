@@ -184,10 +184,10 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta }) {
                 </div>
 
                 {/* Resumen de la cuenta */}
-                <div style={{ padding: '16px 24px', backgroundColor: '#f8f9fa', borderBottom: '1px solid #e9ecef', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Monto Facturado</div><div style={{ fontSize: '16px', fontWeight: '700', color: '#2c3e50' }}>{formatRD(cuenta.monto_inicial)}</div></div>
-                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Saldo Pendiente</div><div style={{ fontSize: '16px', fontWeight: '700', color: saldoCero ? '#198754' : '#dc3545' }}>{formatRD(cuenta.saldo_pendiente)}</div></div>
-                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Estado</div><div style={{ marginTop: '2px' }}><SemaforoEstado estado={cuenta.estado} /></div></div>
+                <div style={{ padding: '12px 24px', backgroundColor: '#f8f9fa', borderBottom: '1px solid #e9ecef', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Monto Facturado</div><div style={{ fontSize: '15px', fontWeight: '700', color: '#2c3e50', marginTop: '4px' }}>{formatRD(cuenta.monto_inicial)}</div></div>
+                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Saldo Pendiente</div><div style={{ fontSize: '15px', fontWeight: '700', color: saldoCero ? '#198754' : '#dc3545', marginTop: '4px' }}>{formatRD(cuenta.saldo_pendiente)}</div></div>
+                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Estado</div><div style={{ marginTop: '5px' }}><SemaforoEstado estado={cuenta.estado} /></div></div>
                 </div>
 
                 {/* Botón Realizar Abono */}
@@ -216,22 +216,22 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta }) {
                     ) : abonos.length === 0 ? (
                         <p style={{ color: '#adb5bd', textAlign: 'center', marginTop: '40px' }}>No hay abonos registrados aún.</p>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {abonos.map(a => (
                                 <div key={a.id} style={{
-                                    border: '1px solid #e9ecef', borderRadius: '10px', padding: '14px 16px',
-                                    backgroundColor: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                                    border: '1px solid #e9ecef', borderRadius: '8px', padding: '10px 12px',
+                                    backgroundColor: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
                                 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                        <span style={{ fontSize: '18px', fontWeight: '700', color: '#198754' }}>{formatRD(a.monto_abonado)}</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                        <span style={{ fontSize: '15px', fontWeight: '700', color: '#198754' }}>{formatRD(a.monto_abonado)}</span>
                                         <span style={{
-                                            fontSize: '12px', fontWeight: '600', padding: '3px 10px', borderRadius: '12px',
+                                            fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '10px',
                                             backgroundColor: '#e8f5e9', color: '#2e7d32'
                                         }}>{a.metodo_pago}</span>
                                     </div>
-                                    <div style={{ fontSize: '12px', color: '#6c757d' }}>{formatFechaHora(a.creado_en)}</div>
-                                    {a.referencia && <div style={{ fontSize: '12px', color: '#495057', marginTop: '4px' }}>Ref: <strong>{a.referencia}</strong></div>}
-                                    {a.notas && <div style={{ fontSize: '12px', color: '#6c757d', marginTop: '4px', fontStyle: 'italic' }}>"{a.notas}"</div>}
+                                    <div style={{ fontSize: '11px', color: '#6c757d' }}>{formatFechaHora(a.creado_en)}</div>
+                                    {a.referencia && <div style={{ fontSize: '11px', color: '#495057', marginTop: '3px' }}>Ref: <strong>{a.referencia}</strong></div>}
+                                    {a.notas && <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '3px', fontStyle: 'italic' }}>"{a.notas}"</div>}
                                 </div>
                             ))}
                         </div>
