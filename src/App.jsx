@@ -7,6 +7,7 @@ import Categorias from './Categorias';
 import Descuentos from './Descuentos';
 import Roles from './Roles';
 import Usuarios from './Usuarios';
+import CuentasCobrar from './CuentasCobrar';
 import Login from './Login';
 import logoImg from './assets/logo.jpg';
 import { API_BASE_URL } from './config';
@@ -191,7 +192,7 @@ function LayoutConMenu({ children, onLogout, usuario }) {
                 setContabilidadAbierto(!contabilidadAbierto);
                 if (!menuAbierto) setMenuAbierto(true);
               }}
-              style={{ ...estiloEnlace(''), cursor: 'pointer', backgroundColor: ['/contabilidad/reportes', '/contabilidad/cuentas-por-cobrar', '/contabilidad/ingresos', '/contabilidad/gastos', '/contabilidad/conciliacion'].includes(location.pathname) ? 'rgba(0, 123, 255, 0.1)' : 'transparent', color: '#495057' }}
+              style={{ ...estiloEnlace(''), cursor: 'pointer', backgroundColor: ['/cuentas-cobrar'].some(r => location.pathname.startsWith(r)) ? 'rgba(0, 123, 255, 0.1)' : 'transparent', color: '#495057' }}
               title="Contabilidad"
             >
               <span style={{ fontSize: '20px', minWidth: '35px' }}>📒</span>
@@ -208,9 +209,9 @@ function LayoutConMenu({ children, onLogout, usuario }) {
                 <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
                   Reportes
                 </div>
-                <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
+                <Link to="/cuentas-cobrar" style={{ ...estiloEnlace('/cuentas-cobrar'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/cuentas-cobrar' ? '#e9ecef' : 'transparent', color: location.pathname === '/cuentas-cobrar' ? '#007bff' : '#495057' }}>
                   Cuentas por cobrar
-                </div>
+                </Link>
                 <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
                   Ingresos
                 </div>
@@ -598,6 +599,7 @@ export default function App() {
               <Usuarios />
             </RutaProtegida>
           } />
+          <Route path="/cuentas-cobrar" element={<CuentasCobrar />} />
         </Routes>
       </LayoutConMenu>
     </Router>
