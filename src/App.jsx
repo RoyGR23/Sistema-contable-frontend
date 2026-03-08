@@ -57,6 +57,7 @@ function LayoutConMenu({ children, onLogout, usuario }) {
   const [menuAbierto, setMenuAbierto] = useState(true);
   const [inventarioAbierto, setInventarioAbierto] = useState(false);
   const [administracionAbierto, setAdministracionAbierto] = useState(false);
+  const [contabilidadAbierto, setContabilidadAbierto] = useState(false);
 
   const location = useLocation();
   const permisos_acciones = usuario?.permisos_acciones;
@@ -183,7 +184,47 @@ function LayoutConMenu({ children, onLogout, usuario }) {
             </div>
           )}
 
-          {/* Menú Desplegable Administración */}
+          {/* Menú Desplegable Contabilidad */}
+          <div>
+            <div
+              onClick={() => {
+                setContabilidadAbierto(!contabilidadAbierto);
+                if (!menuAbierto) setMenuAbierto(true);
+              }}
+              style={{ ...estiloEnlace(''), cursor: 'pointer', backgroundColor: ['/contabilidad/reportes', '/contabilidad/cuentas-por-cobrar', '/contabilidad/ingresos', '/contabilidad/gastos', '/contabilidad/conciliacion'].includes(location.pathname) ? 'rgba(0, 123, 255, 0.1)' : 'transparent', color: '#495057' }}
+              title="Contabilidad"
+            >
+              <span style={{ fontSize: '20px', minWidth: '35px' }}>📒</span>
+              {menuAbierto && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                  <span>Contabilidad</span>
+                  <span style={{ fontSize: '12px', transform: contabilidadAbierto ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>▼</span>
+                </div>
+              )}
+            </div>
+
+            {menuAbierto && contabilidadAbierto && (
+              <div style={{ backgroundColor: '#f8f9fa', padding: '5px 0' }}>
+                <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
+                  Reportes
+                </div>
+                <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
+                  Cuentas por cobrar
+                </div>
+                <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
+                  Ingresos
+                </div>
+                <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
+                  Gastos
+                </div>
+                <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
+                  Conciliación bancaria
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Menú Desplegable Administración — al final */}
           {tienePerm(permisos_acciones, 'ADM') && (
             <div>
               <div
@@ -219,10 +260,6 @@ function LayoutConMenu({ children, onLogout, usuario }) {
             </div>
           )}
 
-          <div style={{ ...estiloEnlace('#'), cursor: 'not-allowed', opacity: 0.5 }} title="Reportes DGII (Próximamente)">
-            <span style={{ fontSize: '20px', minWidth: '35px' }}>📊</span>
-            {menuAbierto && <span>Reportes DGII</span>}
-          </div>
         </nav>
 
         {/* --- SECCIÓN INFERIOR: PERFIL Y LOGOUT --- */}
