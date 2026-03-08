@@ -533,8 +533,8 @@ export default function PuntoDeVenta({ usuario }) {
                                     }}
                                     style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ced4da', fontSize: '13px' }}
                                 >
-                                    <option value="Contado">Al Contado</option>
-                                    <option value="Credito">A Crédito</option>
+                                    <option value="Contado">Contado</option>
+                                    <option value="Credito">Crédito</option>
                                 </select>
                             </div>
 
