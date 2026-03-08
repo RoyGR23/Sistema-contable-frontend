@@ -400,29 +400,66 @@ function PantallaInicio() {
 // --- 3. CONFIGURACIÓN DE RUTAS ---
 export default function App() {
   const [usuarioActivo, setUsuarioActivo] = useState(null);
+  const [esPestanaDuplicada, setEsPestanaDuplicada] = useState(false);
 
-  // Al cargar la App, revisar si hay usuario guardado (Session Persistente)
+  // Lógica de Pestaña Única (BroadcastChannel)
   useEffect(() => {
-    const storedUser = localStorage.getItem('usuario_dvestilo');
+    const canalTab = new BroadcastChannel('dvestilo_tab_channel');
+
+    // Avisamos a otras pestañas que nos acabamos de abrir
+    canalTab.postMessage('NUEVA_PESTANA');
+
+    canalTab.onmessage = (event) => {
+      if (event.data === 'NUEVA_PESTANA') {
+        // Alguien más se abrió, le decimos que ya estamos aquí
+        canalTab.postMessage('YA_EXISTE_PESTANA');
+      } else if (event.data === 'YA_EXISTE_PESTANA') {
+        // Recibimos la confirmación de que hay otra pestaña abierta
+        setEsPestanaDuplicada(true);
+      }
+    };
+
+    return () => {
+      canalTab.close();
+    };
+  }, []);
+
+  // Al cargar la App, revisar si hay usuario guardado (Session Persistente de Pestaña)
+  useEffect(() => {
+    // Limpiamos localStorage antiguo por precaución para forzar login
+    localStorage.removeItem('usuario_dvestilo');
+
+    const storedUser = sessionStorage.getItem('usuario_dvestilo');
     if (storedUser) {
       try {
         setUsuarioActivo(JSON.parse(storedUser));
       } catch (e) {
         console.error("Error leyendo usuario guardado", e);
-        localStorage.removeItem('usuario_dvestilo');
+        sessionStorage.removeItem('usuario_dvestilo');
       }
     }
   }, []);
 
   const handleLoginExitoso = (datosUsuario) => {
     setUsuarioActivo(datosUsuario);
-    localStorage.setItem('usuario_dvestilo', JSON.stringify(datosUsuario));
+    sessionStorage.setItem('usuario_dvestilo', JSON.stringify(datosUsuario));
   };
 
   const handleLogout = () => {
     setUsuarioActivo(null);
-    localStorage.removeItem('usuario_dvestilo');
+    sessionStorage.removeItem('usuario_dvestilo');
   };
+
+  if (esPestanaDuplicada) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f8d7da', color: '#721c24', padding: '20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
+        <h1 style={{ fontSize: '48px', margin: '0 0 20px 0' }}>⚠️</h1>
+        <h2 style={{ fontSize: '24px', margin: '0 0 10px 0' }}>Sistema Abierto en Otra Pestaña</h2>
+        <p style={{ fontSize: '16px', margin: '0 0 10px 0' }}>Por motivos de seguridad y consistencia de datos, solo se permite tener el sistema abierto en una pestaña a la vez.</p>
+        <p style={{ fontSize: '16px', fontWeight: 'bold' }}>Por favor, cierra esta pestaña y continúa trabajando en la original.</p>
+      </div>
+    );
+  }
 
   // Si no hay usuario activo, bloqueamos la app y forzamos el login
   if (!usuarioActivo) {
