@@ -5,6 +5,7 @@ import ModalAutorizacion from './ModalAutorizacion';
 export default function PuntoDeVenta({ usuario }) {
     const [catalogo, setCatalogo] = useState([]);
     const [carrito, setCarrito] = useState([]);
+    const [busquedaProducto, setBusquedaProducto] = useState("");
     const [clientes, setClientes] = useState([]);
     const [busquedaCliente, setBusquedaCliente] = useState("");
     const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
@@ -257,36 +258,98 @@ export default function PuntoDeVenta({ usuario }) {
 
             <div style={{ display: 'flex', gap: '40px' }}>
                 <div style={{ flex: 1 }}>
-                    <h2>Productos Disponibles</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', gap: '15px' }}>
+                        <h2 style={{ margin: 0 }}>Productos Disponibles</h2>
+                        <input
+                            type="text"
+                            placeholder="🔍 Buscar producto..."
+                            value={busquedaProducto}
+                            onChange={(e) => setBusquedaProducto(e.target.value)}
+                            style={{
+                                padding: '9px 14px',
+                                borderRadius: '8px',
+                                border: '1px solid #ced4da',
+                                fontSize: '14px',
+                                width: '220px',
+                                outline: 'none',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.07)'
+                            }}
+                        />
+                    </div>
+
+                    {/* Grid de productos filtrado */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
-                        {catalogo.map((producto) => {
-                            const partes = producto.nombre_mostrar.split(' - ');
-                            const nombrePrincipal = partes[0];
-                            let talla = "";
-                            let color = "";
+                        {catalogo
+                            .filter(p => {
+                                if (!busquedaProducto.trim()) return true;
+                                const q = busquedaProducto.toLowerCase();
+                                return p.nombre_mostrar.toLowerCase().includes(q);
+                            })
+                            .map((producto) => {
+                                const partes = producto.nombre_mostrar.split(' - ');
+                                const nombrePrincipal = partes[0];
+                                let talla = "";
+                                let color = "";
 
-                            if (partes.length > 1) {
-                                const caracteristicasGrupales = partes.slice(1).join(' - ');
-                                const partesTallaColor = caracteristicasGrupales.split(' (');
-                                talla = partesTallaColor[0];
-                                if (partesTallaColor.length > 1) {
-                                    color = "Color " + partesTallaColor[1].replace(')', '');
+                                if (partes.length > 1) {
+                                    const caracteristicasGrupales = partes.slice(1).join(' - ');
+                                    const partesTallaColor = caracteristicasGrupales.split(' (');
+                                    talla = partesTallaColor[0];
+                                    if (partesTallaColor.length > 1) {
+                                        color = "Color " + partesTallaColor[1].replace(')', '');
+                                    }
                                 }
-                            }
 
-                            return (
-                                <button
-                                    key={producto.variante_id}
-                                    onClick={() => agregarAlCarrito(producto)}
-                                    style={{ padding: '20px', backgroundColor: '#f8f9fa', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '5px' }}
-                                >
-                                    <strong style={{ fontSize: '16px', color: '#333' }}>{nombrePrincipal}</strong>
-                                    {talla && <span style={{ fontSize: '14px', color: '#666' }}>{talla}</span>}
-                                    {color && <span style={{ fontSize: '14px', color: '#666' }}>{color}</span>}
-                                    <span style={{ color: '#28a745', fontWeight: 'bold', marginTop: '5px' }}>RD$ {producto.precio}</span>
-                                </button>
-                            );
-                        })}
+                                const sinStock = producto.stock !== undefined && producto.stock <= 0;
+
+                                return (
+                                    <button
+                                        key={producto.variante_id}
+                                        onClick={() => !sinStock && agregarAlCarrito(producto)}
+                                        disabled={sinStock}
+                                        style={{
+                                            padding: '20px',
+                                            backgroundColor: sinStock ? '#f1f3f5' : '#f8f9fa',
+                                            border: `1px solid ${sinStock ? '#dee2e6' : '#ddd'}`,
+                                            borderRadius: '8px',
+                                            cursor: sinStock ? 'not-allowed' : 'pointer',
+                                            textAlign: 'left',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '5px',
+                                            opacity: sinStock ? 0.55 : 1,
+                                            transition: 'box-shadow 0.2s',
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        <strong style={{ fontSize: '16px', color: '#333' }}>{nombrePrincipal}</strong>
+                                        {talla && <span style={{ fontSize: '14px', color: '#666' }}>{talla}</span>}
+                                        {color && <span style={{ fontSize: '14px', color: '#666' }}>{color}</span>}
+                                        <span style={{ color: '#28a745', fontWeight: 'bold', marginTop: '5px' }}>RD$ {producto.precio}</span>
+                                        {/* Badge de stock */}
+                                        <span style={{
+                                            position: 'absolute',
+                                            top: '10px',
+                                            right: '10px',
+                                            fontSize: '12px',
+                                            fontWeight: '700',
+                                            padding: '3px 8px',
+                                            borderRadius: '12px',
+                                            backgroundColor: sinStock ? '#dc3545' : producto.stock <= 5 ? '#fd7e14' : '#198754',
+                                            color: 'white'
+                                        }}>
+                                            {sinStock ? 'Agotado' : `Stock: ${producto.stock}`}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        {catalogo.filter(p => {
+                            if (!busquedaProducto.trim()) return false;
+                            const q = busquedaProducto.toLowerCase();
+                            return p.nombre_mostrar.toLowerCase().includes(q);
+                        }).length === 0 && busquedaProducto.trim() && (
+                                <p style={{ color: '#888', gridColumn: '1/-1' }}>No se encontraron productos con "{busquedaProducto}".</p>
+                            )}
                     </div>
                 </div>
 
