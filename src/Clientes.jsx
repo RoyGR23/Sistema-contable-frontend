@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from './config';
+import ModalAutorizacion from './ModalAutorizacion';
 
-export default function Clientes() {
+export default function Clientes({ usuario }) {
     const [clientes, setClientes] = useState([]);
+    const [modalAuth, setModalAuth] = useState(null);
+
+    const permisos_acciones = usuario?.permisos_acciones || [];
+    const puedeAgregar = permisos_acciones.includes('clientes_agregar');
+    const puedeEditar = permisos_acciones.includes('clientes_editar');
+    const puedeEliminar = permisos_acciones.includes('clientes_eliminar');
 
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [nuevoCliente, setNuevoCliente] = useState({ nombre_cliente: '', rnc_cedula: '', telefono: '', email: '', direccion: '' });
@@ -173,9 +180,7 @@ export default function Clientes() {
         setClienteEditando({ ...clienteEditando, [e.target.name]: e.target.value });
     };
 
-    const guardarEdicion = async (e) => {
-        e.preventDefault();
-
+    const ejecutarEdicion = async () => {
         if (!clienteEditando.nombre_cliente) {
             mostrarMensajeTemporal("El nombre del cliente es obligatorio.", true);
             return;
@@ -201,9 +206,25 @@ export default function Clientes() {
                 mostrarMensajeTemporal(`Error: ${resultado.detail}`, true);
             }
         } catch (error) {
-            mostrarMensajeTemporal("Error de conexión con el servidor.", true);
+            mostrarMensajeTemporal("Error de connection con el servidor.", true);
         } finally {
             setCargando(false);
+        }
+    };
+
+    const guardarEdicion = (e) => {
+        e.preventDefault();
+        if (puedeEditar) {
+            ejecutarEdicion();
+        } else {
+            setModalAuth({
+                permiso_requerido: 'clientes_editar',
+                descripcionAccion: 'Editar información del cliente',
+                onAutorizado: () => {
+                    setModalAuth(null);
+                    ejecutarEdicion();
+                }
+            });
         }
     };
 
@@ -410,8 +431,20 @@ export default function Clientes() {
                         <h1 style={{ color: '#2c3e50', margin: 0, fontSize: '22px' }}>Gestión de Clientes</h1>
                         <button
                             onClick={() => {
-                                setMostrarFormulario(true);
-                                setMensaje(""); // Limpiar mensajes si se oculta o muestra
+                                if (puedeAgregar) {
+                                    setMostrarFormulario(true);
+                                    setMensaje("");
+                                } else {
+                                    setModalAuth({
+                                        permiso_requerido: 'clientes_agregar',
+                                        descripcionAccion: 'Agregar nuevo cliente',
+                                        onAutorizado: () => {
+                                            setModalAuth(null);
+                                            setMostrarFormulario(true);
+                                            setMensaje("");
+                                        }
+                                    });
+                                }
                             }}
                             style={{ padding: '8px 16px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
                         >
@@ -533,7 +566,20 @@ export default function Clientes() {
                                         <td style={{ padding: '12px 15px' }}>{cliente.email || '-'}</td>
                                         <td style={{ padding: '12px 15px' }}>{cliente.direccion || '-'}</td>
                                         <td style={{ padding: '12px 15px', textAlign: 'center' }}>
-                                            <button onClick={() => eliminarCliente(cliente.rnc_cedula)} style={{ padding: '5px 10px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }} title="Eliminar Cliente">
+                                            <button onClick={() => {
+                                                if (puedeEliminar) {
+                                                    eliminarCliente(cliente.rnc_cedula);
+                                                } else {
+                                                    setModalAuth({
+                                                        permiso_requerido: 'clientes_eliminar',
+                                                        descripcionAccion: 'Eliminar cliente',
+                                                        onAutorizado: () => {
+                                                            setModalAuth(null);
+                                                            eliminarCliente(cliente.rnc_cedula);
+                                                        }
+                                                    });
+                                                }
+                                            }} style={{ padding: '5px 10px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }} title="Eliminar Cliente">
                                                 ✕
                                             </button>
                                         </td>
@@ -550,6 +596,15 @@ export default function Clientes() {
                         </table>
                     </div>
                 </>
+            )}
+
+            {modalAuth && (
+                <ModalAutorizacion
+                    permiso_requerido={modalAuth.permiso_requerido}
+                    descripcionAccion={modalAuth.descripcionAccion}
+                    onAutorizado={modalAuth.onAutorizado}
+                    onCancelar={() => setModalAuth(null)}
+                />
             )}
         </div>
     );

@@ -479,7 +479,7 @@ export default function App() {
           } />
           <Route path="/clientes" element={
             <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="CLI">
-              <Clientes />
+              <Clientes usuario={usuarioActivo} />
             </RutaProtegida>
           } />
           <Route path="/inventario" element={
