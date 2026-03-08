@@ -9,13 +9,12 @@ import { API_BASE_URL } from './config';
  * y si es válido ejecuta la acción. El usuario original sigue logueado.
  *
  * Props:
- *  - moduloCodigo: código interno del módulo (ej: "CAJ")
- *  - permisoClave: clave del permiso requerido (ej: "puede_crear", "puede_editar")
+ *  - permiso_requerido: clave del permiso (ej: "caja_eliminar_impuesto", "caja_aplicar_descuento")
  *  - descripcionAccion: texto legible de la acción (ej: "Registrar factura")
  *  - onAutorizado: función a ejecutar si la autorización es exitosa
  *  - onCancelar: función para cerrar el modal sin hacer nada
  */
-export default function ModalAutorizacion({ moduloCodigo, permisoClave, descripcionAccion, onAutorizado, onCancelar }) {
+export default function ModalAutorizacion({ permiso_requerido, descripcionAccion, onAutorizado, onCancelar }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -46,11 +45,10 @@ export default function ModalAutorizacion({ moduloCodigo, permisoClave, descripc
                 return;
             }
 
-            // Verificar que el autorizador tenga el permiso requerido en el módulo indicado
-            const permisos = datos.datos?.permisos || {};
-            const permisosModulo = permisos[moduloCodigo];
+            // Verificar que el autorizador tenga el permiso requerido en su arreglo de acciones
+            const permisos_acciones = datos.datos?.permisos_acciones || [];
 
-            if (!permisosModulo || permisosModulo[permisoClave] !== true) {
+            if (!permisos_acciones.includes(permiso_requerido)) {
                 setError(`Este usuario tampoco tiene permiso para: "${descripcionAccion}".`);
                 setVerificando(false);
                 return;

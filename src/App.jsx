@@ -11,16 +11,32 @@ import Login from './Login';
 import logoImg from './assets/logo.jpg';
 import { API_BASE_URL } from './config';
 
-// Verifica si el usuario tiene permiso para ver un módulo
-// Si el usuario no tiene permisos definidos (objeto vacío), se asume Administrador y ve todo
-function tienePerm(permisos, codigo) {
-  if (!permisos || Object.keys(permisos).length === 0) return true;
-  return permisos[codigo]?.puede_ver === true;
+// function tienePerm(permisos, codigo) ...
+// Cambiado para trabajar con el nuevo arreglo `permisos_acciones`:
+function tienePerm(permisos_acciones, codigo) {
+  // Si no existe la propiedad o no es un arreglo, damos paso por compatibilidad/Admin original
+  if (!permisos_acciones || !Array.isArray(permisos_acciones)) return true;
+
+  const prefixMap = {
+    'INI': 'panel',
+    'CAJ': 'caja',
+    'CLI': 'clientes',
+    'INV': 'inventario',
+    'CAT': 'categorias',
+    'DES': 'descuentos',
+    'ROL': 'roles',
+    'USU': 'usuarios'
+  };
+
+  const prefix = prefixMap[codigo];
+  if (!prefix) return true;
+
+  return permisos_acciones.some(p => p.startsWith(prefix));
 }
 
 // Componente que protege una ruta: si el usuario no tiene permiso, redirige al inicio
-function RutaProtegida({ children, permisos, codigo }) {
-  if (!tienePerm(permisos, codigo)) {
+function RutaProtegida({ children, permisos_acciones, codigo }) {
+  if (!tienePerm(permisos_acciones, codigo)) {
     return <Navigate to="/" replace />;
   }
   return children;
@@ -33,7 +49,7 @@ function LayoutConMenu({ children, onLogout, usuario }) {
   const [administracionAbierto, setAdministracionAbierto] = useState(false);
 
   const location = useLocation();
-  const permisos = usuario?.permisos || {};
+  const permisos_acciones = usuario?.permisos_acciones;
 
   const anchoMenu = menuAbierto ? '260px' : '70px';
 
@@ -52,14 +68,14 @@ function LayoutConMenu({ children, onLogout, usuario }) {
   });
 
   // Determinar si el bloque Inventario tiene al menos un sub-item visible
-  const verInventario = tienePerm(permisos, 'INV');
-  const verCategorias = tienePerm(permisos, 'CAT');
+  const verInventario = tienePerm(permisos_acciones, 'INV');
+  const verCategorias = tienePerm(permisos_acciones, 'CAT');
   const mostrarMenuInventario = verInventario || verCategorias;
 
   // Determinar si el bloque Administración tiene al menos un sub-item visible
-  const verDescuentos = tienePerm(permisos, 'DES');
-  const verRoles = tienePerm(permisos, 'ROL');
-  const verUsuarios = tienePerm(permisos, 'USU');
+  const verDescuentos = tienePerm(permisos_acciones, 'DES');
+  const verRoles = tienePerm(permisos_acciones, 'ROL');
+  const verUsuarios = tienePerm(permisos_acciones, 'USU');
   const mostrarMenuAdmin = verDescuentos || verRoles || verUsuarios;
 
   return (
@@ -97,7 +113,7 @@ function LayoutConMenu({ children, onLogout, usuario }) {
         <nav style={{ display: 'flex', flexDirection: 'column', marginTop: '20px' }}>
 
           {/* Panel Principal — siempre visible */}
-          {tienePerm(permisos, 'INI') && (
+          {tienePerm(permisos_acciones, 'INI') && (
             <Link to="/" style={estiloEnlace('/')} title="Inicio">
               <span style={{ fontSize: '20px', minWidth: '35px' }}>🏠</span>
               {menuAbierto && <span>Panel Principal</span>}
@@ -105,15 +121,15 @@ function LayoutConMenu({ children, onLogout, usuario }) {
           )}
 
           {/* Caja */}
-          {tienePerm(permisos, 'CAJ') && (
+          {tienePerm(permisos_acciones, 'CAJ') && (
             <Link to="/pos" style={estiloEnlace('/pos')} title="Punto de Venta">
               <span style={{ fontSize: '20px', minWidth: '35px' }}>🛒</span>
               {menuAbierto && <span>Caja</span>}
             </Link>
           )}
 
-          {/* Clientes — no tiene módulo propio, lo dejamos fuera del sistema de permisos por ahora */}
-          {tienePerm(permisos, 'CLI') && (
+          {/* Clientes */}
+          {tienePerm(permisos_acciones, 'CLI') && (
             <Link to="/clientes" style={estiloEnlace('/clientes')} title="Clientes">
               <span style={{ fontSize: '20px', minWidth: '35px' }}>👥</span>
               {menuAbierto && <span>Clientes</span>}
@@ -420,37 +436,37 @@ export default function App() {
         <Routes>
           <Route path="/" element={<PantallaInicio />} />
           <Route path="/pos" element={
-            <RutaProtegida permisos={usuarioActivo.permisos} codigo="CAJ">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="CAJ">
               <PuntoDeVenta usuario={usuarioActivo} />
             </RutaProtegida>
           } />
           <Route path="/clientes" element={
-            <RutaProtegida permisos={usuarioActivo.permisos} codigo="CLI">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="CLI">
               <Clientes />
             </RutaProtegida>
           } />
           <Route path="/inventario" element={
-            <RutaProtegida permisos={usuarioActivo.permisos} codigo="INV">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="INV">
               <Inventario />
             </RutaProtegida>
           } />
           <Route path="/categorias" element={
-            <RutaProtegida permisos={usuarioActivo.permisos} codigo="CAT">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="CAT">
               <Categorias />
             </RutaProtegida>
           } />
           <Route path="/descuentos" element={
-            <RutaProtegida permisos={usuarioActivo.permisos} codigo="DES">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="DES">
               <Descuentos />
             </RutaProtegida>
           } />
           <Route path="/roles" element={
-            <RutaProtegida permisos={usuarioActivo.permisos} codigo="ROL">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="ROL">
               <Roles />
             </RutaProtegida>
           } />
           <Route path="/usuarios" element={
-            <RutaProtegida permisos={usuarioActivo.permisos} codigo="USU">
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="USU">
               <Usuarios />
             </RutaProtegida>
           } />

@@ -13,17 +13,20 @@ export default function PuntoDeVenta({ usuario }) {
     const [mensaje, setMensaje] = useState("");
     const [cargando, setCargando] = useState(false);
 
+    const [tipoVenta, setTipoVenta] = useState('Contado');
+    const [aplicarItbis, setAplicarItbis] = useState(true);
+
     // --- Estado del Modal de Autorización ---
     const [modalAuth, setModalAuth] = useState(null);
-    // modalAuth = { permisoClave, descripcionAccion, onAutorizado }
+    // modalAuth = { permiso_requerido, descripcionAccion, onAutorizado }
 
-    // puede_ver   → ver el módulo (controlado por RutaProtegida en App.jsx)
-    // puede_editar → seleccionar productos, buscar clientes, registrar factura
-    // puede_crear  → aplicar descuentos
-    const permisosCAJ = usuario?.permisos?.['CAJ'] || {};
-    const puedeEditarCliente = permisosCAJ.puede_editar === true;
-    const puedeAplicarDescuento = permisosCAJ.puede_crear === true;
-    const puedeRegistrarFactura = permisosCAJ.puede_editar === true;
+    const permisos_acciones = usuario?.permisos_acciones || [];
+    const puedeEditarCliente = permisos_acciones.includes('caja_seleccionar_cliente');
+    const puedeAplicarDescuento = permisos_acciones.includes('caja_aplicar_descuento');
+    const puedeRegistrarFactura = permisos_acciones.includes('caja_aplicar_factura');
+    const puedeSeleccionarProductos = permisos_acciones.includes('caja_seleccionar_productos');
+    const puedeEliminarImpuesto = permisos_acciones.includes('caja_eliminar_impuesto');
+    const puedeVentaCredito = permisos_acciones.includes('caja_venta_credito');
 
     useEffect(() => {
         const cargarDatosInciales = async () => {
@@ -61,6 +64,21 @@ export default function PuntoDeVenta({ usuario }) {
     }, [clienteSeleccionado, descuentos]);
 
     const agregarAlCarrito = (producto) => {
+        if (!puedeSeleccionarProductos) {
+            setModalAuth({
+                permiso_requerido: 'caja_seleccionar_productos',
+                descripcionAccion: 'Seleccionar productos',
+                onAutorizado: () => {
+                    setModalAuth(null);
+                    agregarAlCarritoLogica(producto);
+                }
+            });
+            return;
+        }
+        agregarAlCarritoLogica(producto);
+    };
+
+    const agregarAlCarritoLogica = (producto) => {
         setCarrito((carritoActual) => {
             const existe = carritoActual.find(item => item.variante_id === producto.variante_id);
             if (existe) {
@@ -111,22 +129,30 @@ export default function PuntoDeVenta({ usuario }) {
     if (montoDescuento > totalCarrito) montoDescuento = totalCarrito;
 
     const subtotalConDescuento = totalCarrito - montoDescuento;
-    const itbis = subtotalConDescuento * 0.18;
+    const itbis = aplicarItbis ? subtotalConDescuento * 0.18 : 0;
     const totalConImpuesto = subtotalConDescuento + itbis;
 
     // Lógica real de cobro (se llama directamente o desde el modal)
     const ejecutarCobro = async () => {
+        if (tipoVenta === 'Credito' && !clienteSeleccionado) {
+            setMensaje("Debe asignar un cliente para las facturas a crédito.");
+            return;
+        }
+
         setCargando(true);
         setMensaje("Generando factura...");
 
         const datosVenta = {
+            cliente_id: clienteSeleccionado ? clienteSeleccionado.id : null,
             rnc_cliente: clienteSeleccionado ? clienteSeleccionado.rnc_cedula : null,
             nombre_cliente: clienteSeleccionado ? clienteSeleccionado.nombre_cliente : (busquedaCliente.trim() !== "" ? busquedaCliente : "Cliente Casual"),
             tipo_comprobante: "B02",
             metodo_pago: "Efectivo",
             articulos: carrito,
             descuento_id: descuentoSeleccionado || null,
-            descuento: montoDescuento
+            descuento: montoDescuento,
+            tipo_venta: tipoVenta,
+            aplicar_itbis: aplicarItbis
         };
 
         try {
@@ -142,6 +168,8 @@ export default function PuntoDeVenta({ usuario }) {
                 setClienteSeleccionado(null);
                 setBusquedaCliente("");
                 setDescuentoSeleccionado('');
+                setTipoVenta('Contado');
+                setAplicarItbis(true);
             } else {
                 setMensaje(`Error: ${resultado.detail}`);
             }
@@ -160,7 +188,7 @@ export default function PuntoDeVenta({ usuario }) {
         }
         if (!puedeRegistrarFactura) {
             setModalAuth({
-                permisoClave: 'puede_crear',
+                permiso_requerido: 'caja_aplicar_factura',
                 descripcionAccion: 'Registrar factura',
                 onAutorizado: () => { setModalAuth(null); ejecutarCobro(); }
             });
@@ -172,7 +200,7 @@ export default function PuntoDeVenta({ usuario }) {
     const handleSeleccionarCliente = (cliente) => {
         if (!puedeEditarCliente) {
             setModalAuth({
-                permisoClave: 'puede_editar',
+                permiso_requerido: 'caja_seleccionar_cliente',
                 descripcionAccion: 'Buscar y asignar clientes',
                 onAutorizado: () => {
                     setClienteSeleccionado(cliente);
@@ -189,7 +217,7 @@ export default function PuntoDeVenta({ usuario }) {
     const handleCambiarDescuento = (valor) => {
         if (!puedeAplicarDescuento) {
             setModalAuth({
-                permisoClave: 'puede_editar',
+                permiso_requerido: 'caja_aplicar_descuento',
                 descripcionAccion: 'Aplicar descuentos',
                 onAutorizado: () => {
                     setDescuentoSeleccionado(valor);
@@ -220,8 +248,7 @@ export default function PuntoDeVenta({ usuario }) {
             {/* Modal de Autorización (aparece encima de todo si hay una acción pendiente) */}
             {modalAuth && (
                 <ModalAutorizacion
-                    moduloCodigo="CAJ"
-                    permisoClave={modalAuth.permisoClave}
+                    permiso_requerido={modalAuth.permiso_requerido}
                     descripcionAccion={modalAuth.descripcionAccion}
                     onAutorizado={modalAuth.onAutorizado}
                     onCancelar={() => setModalAuth(null)}
@@ -306,7 +333,7 @@ export default function PuntoDeVenta({ usuario }) {
                                         if (!puedeEditarCliente) {
                                             // Abrir modal en el primer intento de escritura
                                             setModalAuth({
-                                                permisoClave: 'puede_editar',
+                                                permiso_requerido: 'caja_seleccionar_cliente',
                                                 descripcionAccion: 'Buscar y asignar clientes',
                                                 onAutorizado: () => setModalAuth(null)
                                             });
@@ -388,7 +415,7 @@ export default function PuntoDeVenta({ usuario }) {
                                     onClick={() => {
                                         if (!puedeAplicarDescuento) {
                                             setModalAuth({
-                                                permisoClave: 'puede_crear',
+                                                permiso_requerido: 'caja_aplicar_descuento',
                                                 descripcionAccion: 'Aplicar descuentos',
                                                 onAutorizado: () => setModalAuth(null)
                                             });
@@ -415,6 +442,73 @@ export default function PuntoDeVenta({ usuario }) {
                                 <span>Total del Descuento:</span>
                                 <span style={{ fontWeight: 'bold' }}>- RD$ {montoDescuento.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
                             </div>
+
+                            {/* --- SELECTORES DE NUEVOS PERMISOS (Crédito y Eliminar Impuesto) --- */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px', marginTop: '15px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#6c757d' }}>
+                                    <span>Tipo de Venta:</span>
+                                    {!puedeVentaCredito && (
+                                        <span title="Requiere autorización para venta a crédito" style={{ fontSize: '14px', cursor: 'help' }}>🔒</span>
+                                    )}
+                                </div>
+                                <select
+                                    value={tipoVenta}
+                                    onChange={(e) => {
+                                        const valor = e.target.value;
+                                        if (valor === 'Credito' && !puedeVentaCredito) {
+                                            setModalAuth({
+                                                permiso_requerido: 'caja_venta_credito',
+                                                descripcionAccion: 'Registrar factura a crédito',
+                                                onAutorizado: () => {
+                                                    setTipoVenta('Credito');
+                                                    setModalAuth(null);
+                                                }
+                                            });
+                                            return;
+                                        }
+                                        setTipoVenta(valor);
+                                    }}
+                                    style={{ padding: '4px', borderRadius: '4px', border: '1px solid #ced4da', fontSize: '13px' }}
+                                >
+                                    <option value="Contado">Al Contado</option>
+                                    <option value="Credito">A Crédito</option>
+                                </select>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#6c757d' }}>
+                                    <span>Aplicar ITBIS (18%):</span>
+                                    {!puedeEliminarImpuesto && (
+                                        <span title="Requiere autorización para eliminar impuestos" style={{ fontSize: '14px', cursor: 'help' }}>🔒</span>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={aplicarItbis}
+                                        onChange={(e) => {
+                                            const nuevoValor = e.target.checked;
+                                            if (!nuevoValor && !puedeEliminarImpuesto) {
+                                                setModalAuth({
+                                                    permiso_requerido: 'caja_eliminar_impuesto',
+                                                    descripcionAccion: 'Eliminar ITBIS de la factura',
+                                                    onAutorizado: () => {
+                                                        setAplicarItbis(false);
+                                                        setModalAuth(null);
+                                                    }
+                                                });
+                                                return;
+                                            }
+                                            setAplicarItbis(nuevoValor);
+                                        }}
+                                        style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                                    />
+                                    <span style={{ fontSize: '14px', color: aplicarItbis ? '#28a745' : '#dc3545', fontWeight: 'bold' }}>
+                                        {aplicarItbis ? 'SI' : 'NO'}
+                                    </span>
+                                </div>
+                            </div>
+
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
                                 <span style={{ color: '#6c757d' }}>ITBIS (18%):</span>

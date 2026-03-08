@@ -3,10 +3,10 @@ import { API_BASE_URL } from './config';
 
 export default function Roles() {
     const [roles, setRoles] = useState([]);
-    const [modulos, setModulos] = useState([]);
+    const [permisosLista, setPermisosLista] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [mensaje, setMensaje] = useState("");
-    const [tipoMensaje, setTipoMensaje] = useState(""); // 'exito' o 'error'
+    const [tipoMensaje, setTipoMensaje] = useState("");
 
     // --- ESTADOS DEL MODAL ---
     const [mostrarModal, setMostrarModal] = useState(false);
@@ -18,8 +18,8 @@ export default function Roles() {
         descripcion: ''
     });
 
-    // permissions: { "modulo_id": { puede_ver: false, puede_crear: false, puede_editar: false, puede_eliminar: false } }
-    const [permisos, setPermisos] = useState({});
+    // Array de IDs de permisos (permisos_id) que tiene seleccionado este rol
+    const [permisosSeleccionados, setPermisosSeleccionados] = useState([]);
 
     const mostrarMensajeTemporal = (texto, error = false) => {
         setMensaje(texto);
@@ -30,18 +30,18 @@ export default function Roles() {
     const cargarDatosCentrales = async () => {
         setCargando(true);
         try {
-            const [resRoles, resModulos] = await Promise.all([
+            const [resRoles, resPerms] = await Promise.all([
                 fetch(`${API_BASE_URL}/api/v1/roles`),
-                fetch(`${API_BASE_URL}/api/v1/modulos`)
+                fetch(`${API_BASE_URL}/api/v1/permisos`)
             ]);
 
             if (resRoles.ok) {
                 const data = await resRoles.json();
                 setRoles(data.datos);
             }
-            if (resModulos.ok) {
-                const data = await resModulos.json();
-                setModulos(data.datos);
+            if (resPerms.ok) {
+                const data = await resPerms.json();
+                setPermisosLista(data.datos);
             }
         } catch (error) {
             mostrarMensajeTemporal("Error de conexión al cargar datos.", true);
@@ -54,38 +54,29 @@ export default function Roles() {
         cargarDatosCentrales();
     }, []);
 
-    // Inicializa la matriz de permisos por defecto (todo falso)
-    const inicializarPermisosBase = () => {
-        const initialState = {};
-        modulos.forEach(m => {
-            initialState[m.id] = { puede_ver: false, puede_crear: false, puede_editar: false, puede_eliminar: false };
-        });
-        setPermisos(initialState);
-    };
-
     const handleChangeForm = (e) => {
         setFormulario({ ...formulario, [e.target.name]: e.target.value });
     };
 
-    const handleCheckboxChange = (moduloId, permiso) => {
-        setPermisos(prev => ({
-            ...prev,
-            [moduloId]: {
-                ...prev[moduloId],
-                [permiso]: !prev[moduloId][permiso]
+    const handleCheckboxChange = (permisoId) => {
+        setPermisosSeleccionados(prev => {
+            if (prev.includes(permisoId)) {
+                return prev.filter(id => id !== permisoId);
+            } else {
+                return [...prev, permisoId];
             }
-        }));
+        });
     };
 
     const resetFormulario = () => {
         setFormulario({ nombre: '', descripcion: '' });
         setRolEditando(null);
-        inicializarPermisosBase();
+        setPermisosSeleccionados([]);
         setMostrarModal(false);
     };
 
     const iniciarCreacion = () => {
-        inicializarPermisosBase();
+        setPermisosSeleccionados([]);
         setFormulario({ nombre: '', descripcion: '' });
         setRolEditando(null);
         setMostrarModal(true);
@@ -97,35 +88,15 @@ export default function Roles() {
             descripcion: rol.descripcion || ''
         });
         setRolEditando(rol.id);
-
-        // Preparamos base falsa
-        const currentPerms = {};
-        modulos.forEach(m => {
-            currentPerms[m.id] = { puede_ver: false, puede_crear: false, puede_editar: false, puede_eliminar: false };
-        });
-        setPermisos(currentPerms);
+        setPermisosSeleccionados([]);
         setMostrarModal(true);
 
         try {
-            // Cargar los permisos actuales de este rol
+            // Cargar los IDs de permisos de este rol
             const res = await fetch(`${API_BASE_URL}/api/v1/roles/${rol.id}/permisos`);
             if (res.ok) {
                 const data = await res.json();
-                const permisosDB = data.datos;
-
-                // Mezclamos lo que venga de BD
-                const newPerms = { ...currentPerms };
-                permisosDB.forEach(p => {
-                    if (newPerms[p.modulo_id]) {
-                        newPerms[p.modulo_id] = {
-                            puede_ver: p.puede_ver,
-                            puede_crear: p.puede_crear,
-                            puede_editar: p.puede_editar,
-                            puede_eliminar: p.puede_eliminar
-                        };
-                    }
-                });
-                setPermisos(newPerms);
+                setPermisosSeleccionados(data.datos || []);
             }
         } catch (error) {
             console.error("No se pudieron cargar los permisos del rol.");
@@ -161,24 +132,11 @@ export default function Roles() {
 
             const rolId = rolEditando ? rolEditando : dataRol.datos.id;
 
-            // 2. Preparar el arreglo de permisos
-            const permisosPayload = [];
-            Object.keys(permisos).forEach(modulo_id => {
-                const p = permisos[modulo_id];
-                permisosPayload.push({
-                    modulo_id: modulo_id,
-                    puede_ver: p.puede_ver,
-                    puede_crear: p.puede_crear,
-                    puede_editar: p.puede_editar,
-                    puede_eliminar: p.puede_eliminar
-                });
-            });
-
-            // 3. Guardar Permisos
+            // 2. Guardar Permisos (Array de IDs)
             const resPerm = await fetch(`${API_BASE_URL}/api/v1/roles/${rolId}/permisos`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(permisosPayload)
+                body: JSON.stringify({ permisos_ids: permisosSeleccionados })
             });
 
             if (!resPerm.ok) {
@@ -196,6 +154,14 @@ export default function Roles() {
             setGuardando(false);
         }
     };
+
+    // Agrupar permisos devueltos por la BD según su columna "modulo"
+    const permisosAgrupados = permisosLista.reduce((acc, permiso) => {
+        const mod = permiso.modulo || 'Otros';
+        if (!acc[mod]) acc[mod] = [];
+        acc[mod].push(permiso);
+        return acc;
+    }, {});
 
     const eliminarRol = async (id) => {
         if (!window.confirm("¿Seguro que deseas eliminar este rol? Esta acción es irreversible.")) return;
@@ -233,7 +199,7 @@ export default function Roles() {
                     backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
                 }}>
                     <div style={{
-                        backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '700px',
+                        backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '800px',
                         maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -256,40 +222,30 @@ export default function Roles() {
                             </div>
 
                             <div style={{ borderTop: '1px solid #eee', paddingTop: '15px' }}>
-                                <h3 style={{ color: '#2c3e50', marginTop: 0, marginBottom: '15px', fontSize: '16px' }}>Matriz de Permisos</h3>
-                                {modulos.length === 0 ? (
-                                    <p style={{ color: '#7f8c8d', fontSize: '14px' }}>No hay módulos configurados en la base de datos.</p>
+                                <h3 style={{ color: '#2c3e50', marginTop: 0, marginBottom: '15px', fontSize: '16px' }}>Listado de Acciones y Permisos</h3>
+                                {Object.keys(permisosAgrupados).length === 0 ? (
+                                    <p style={{ color: '#7f8c8d', fontSize: '14px' }}>No hay permisos configurados en la base de datos.</p>
                                 ) : (
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                                        <thead>
-                                            <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                                                <th style={{ padding: '10px', textAlign: 'left', color: '#495057' }}>Módulo</th>
-                                                <th style={{ padding: '10px', textAlign: 'center', color: '#495057' }}>Ver</th>
-                                                <th style={{ padding: '10px', textAlign: 'center', color: '#495057' }}>Crear</th>
-                                                <th style={{ padding: '10px', textAlign: 'center', color: '#495057' }}>Editar</th>
-                                                <th style={{ padding: '10px', textAlign: 'center', color: '#495057' }}>Eliminar</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {modulos.map(m => (
-                                                <tr key={m.id} style={{ borderBottom: '1px solid #e9ecef' }}>
-                                                    <td style={{ padding: '10px', fontWeight: 'bold', color: '#34495e' }}>{m.nombre}</td>
-                                                    <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                        <input type="checkbox" checked={permisos[m.id]?.puede_ver || false} onChange={() => handleCheckboxChange(m.id, 'puede_ver')} style={{ transform: 'scale(1.2)', cursor: 'pointer' }} />
-                                                    </td>
-                                                    <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                        <input type="checkbox" checked={permisos[m.id]?.puede_crear || false} onChange={() => handleCheckboxChange(m.id, 'puede_crear')} style={{ transform: 'scale(1.2)', cursor: 'pointer' }} />
-                                                    </td>
-                                                    <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                        <input type="checkbox" checked={permisos[m.id]?.puede_editar || false} onChange={() => handleCheckboxChange(m.id, 'puede_editar')} style={{ transform: 'scale(1.2)', cursor: 'pointer' }} />
-                                                    </td>
-                                                    <td style={{ padding: '10px', textAlign: 'center' }}>
-                                                        <input type="checkbox" checked={permisos[m.id]?.puede_eliminar || false} onChange={() => handleCheckboxChange(m.id, 'puede_eliminar')} style={{ transform: 'scale(1.2)', cursor: 'pointer' }} />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                        {Object.keys(permisosAgrupados).map(modulo => (
+                                            <div key={modulo} style={{ border: '1px solid #e9ecef', borderRadius: '8px', padding: '15px' }}>
+                                                <h4 style={{ margin: '0 0 10px 0', color: '#2980b9', textTransform: 'capitalize' }}>Módulo: {modulo}</h4>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px' }}>
+                                                    {permisosAgrupados[modulo].map(permiso => (
+                                                        <label key={permiso.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#34495e' }}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={permisosSeleccionados.includes(permiso.id)}
+                                                                onChange={() => handleCheckboxChange(permiso.id)}
+                                                                style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                                                            />
+                                                            {permiso.codigo.replace(/_/g, ' ')}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
 
