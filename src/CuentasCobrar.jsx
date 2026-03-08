@@ -10,6 +10,139 @@ const SEMAFORO = {
 };
 const ESTADOS = Object.keys(SEMAFORO);
 
+// ─── Modal: Exportar PDF ──────────────────────────────────────────────────────
+function ModalExportarPDF({ cuentas, onCerrar }) {
+    const hoy = new Date().toISOString().split('T')[0];
+    const [fechaDesde, setFechaDesde] = useState('');
+    const [fechaHasta, setFechaHasta] = useState(hoy);
+    const [estadoFiltro, setEstadoFiltro] = useState('Todos');
+    const [clienteFiltro, setClienteFiltro] = useState('');
+    const [montoMin, setMontoMin] = useState('');
+    const [montoMax, setMontoMax] = useState('');
+
+    const formatRD = v => `RD$ ${parseFloat(v || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}`;
+    const formatFecha = f => f ? new Date(f + 'T00:00:00').toLocaleDateString('es-DO', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+
+    const cuentasFiltradas = cuentas.filter(c => {
+        if (estadoFiltro !== 'Todos' && c.estado !== estadoFiltro) return false;
+        if (clienteFiltro.trim() && !c.nombre_cliente.toLowerCase().includes(clienteFiltro.toLowerCase())) return false;
+        const saldo = parseFloat(c.saldo_pendiente || 0);
+        if (montoMin !== '' && saldo < parseFloat(montoMin)) return false;
+        if (montoMax !== '' && saldo > parseFloat(montoMax)) return false;
+        if (fechaDesde && c.creado_en && c.creado_en.split('T')[0] < fechaDesde) return false;
+        if (fechaHasta && c.creado_en && c.creado_en.split('T')[0] > fechaHasta) return false;
+        return true;
+    });
+
+    const totalSaldo = cuentasFiltradas.reduce((s, c) => s + parseFloat(c.saldo_pendiente || 0), 0);
+
+    const [generando, setGenerando] = useState(false);
+
+    const generarPDF = async () => {
+        setGenerando(true);
+        try {
+            const params = new URLSearchParams();
+            if (fechaDesde) params.append('fecha_desde', fechaDesde);
+            if (fechaHasta) params.append('fecha_hasta', fechaHasta);
+            if (estadoFiltro !== 'Todos') params.append('estado', estadoFiltro);
+            if (clienteFiltro) params.append('cliente', clienteFiltro);
+            if (montoMin) params.append('monto_min', montoMin);
+            if (montoMax) params.append('monto_max', montoMax);
+
+            const url = `${API_BASE_URL}/api/v1/cuentas-cobrar/exportar-pdf?${params.toString()}`;
+
+            const response = await fetch(url, { method: 'GET' });
+            if (!response.ok) {
+                throw new Error('Error al generar el PDF del lado del servidor');
+            }
+
+            const blob = await response.blob();
+            const tempUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = tempUrl;
+            a.download = `cuentas_por_cobrar_${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(tempUrl);
+
+            onCerrar();
+        } catch (error) {
+            console.error(error);
+            alert('Hubo un problema al generar el PDF.');
+        } finally {
+            setGenerando(false);
+        }
+    };
+
+    const inputStyle = { width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #ced4da', fontSize: '13px', boxSizing: 'border-box', outline: 'none' };
+    const labelStyle = { fontSize: '12px', color: '#6c757d', fontWeight: '600', display: 'block', marginBottom: '5px' };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }} onClick={onCerrar}>
+            <div style={{ backgroundColor: 'white', borderRadius: '14px', padding: '28px', width: '520px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div>
+                        <h3 style={{ margin: 0, color: '#2c3e50' }}>Exportar Reporte PDF</h3>
+                        <p style={{ margin: '4px 0 0', color: '#7f8c8d', fontSize: '13px' }}>Filtra los datos antes de generar el reporte.</p>
+                    </div>
+                    <button onClick={onCerrar} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#6c757d' }}>✕</button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                    <div>
+                        <label style={labelStyle}>Fecha desde</label>
+                        <input type="date" value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Fecha hasta</label>
+                        <input type="date" value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Estado</label>
+                        <select value={estadoFiltro} onChange={e => setEstadoFiltro(e.target.value)} style={inputStyle}>
+                            <option value="Todos">Todos los estados</option>
+                            {Object.keys(SEMAFORO).map(s => <option key={s} value={s}>{SEMAFORO[s].emoji} {s}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Cliente</label>
+                        <input type="text" placeholder="Nombre del cliente..." value={clienteFiltro} onChange={e => setClienteFiltro(e.target.value)} style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Saldo mínimo (RD$)</label>
+                        <input type="number" min="0" placeholder="0.00" value={montoMin} onChange={e => setMontoMin(e.target.value)} style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={labelStyle}>Saldo máximo (RD$)</label>
+                        <input type="number" min="0" placeholder="Sin límite" value={montoMax} onChange={e => setMontoMax(e.target.value)} style={inputStyle} />
+                    </div>
+                </div>
+
+                {/* Preview */}
+                <div style={{ marginTop: '18px', padding: '12px 16px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                    <span style={{ fontSize: '13px', color: '#495057' }}>
+                        Registros a incluir: <strong style={{ color: '#2c3e50' }}>{cuentasFiltradas.length}</strong>
+                        &nbsp;|&nbsp; Saldo total: <strong style={{ color: '#dc3545' }}>{formatRD(totalSaldo)}</strong>
+                    </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                    <button onClick={onCerrar} disabled={generando} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #ced4da', backgroundColor: 'white', cursor: 'pointer', fontWeight: '600', color: '#6c757d' }}>Cancelar</button>
+                    <button
+                        onClick={generarPDF}
+                        disabled={cuentasFiltradas.length === 0 || generando}
+                        style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', backgroundColor: (cuentasFiltradas.length === 0 || generando) ? '#adb5bd' : '#dc3545', color: 'white', cursor: (cuentasFiltradas.length === 0 || generando) ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                        {generando ? 'Generando...' : `Generar PDF ${cuentasFiltradas.length > 0 ? `(${cuentasFiltradas.length})` : ''}`}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function SemaforoEstado({ estado }) {
     const cfg = SEMAFORO[estado] || SEMAFORO['Pendiente'];
     return (
@@ -204,7 +337,7 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta }) {
                             fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px'
                         }}
                     >
-                        ➕ Realizar Abono
+                        Realizar Abono
                         {(saldoCero || cuentaCerrada) && <span style={{ fontSize: '12px', fontWeight: '400' }}>(Cuenta saldada)</span>}
                     </button>
                 </div>
@@ -261,6 +394,7 @@ export default function CuentasCobrar() {
     const [filtroEstado, setFiltroEstado] = useState('Todos');
     const [busqueda, setBusqueda] = useState('');
     const [cuentaSeleccionada, setCuentaSeleccionada] = useState(null);
+    const [mostrarModalPDF, setMostrarModalPDF] = useState(false);
 
     const cargarCuentas = useCallback(async () => {
         setCargando(true);
@@ -323,21 +457,29 @@ export default function CuentasCobrar() {
             </div>
 
             {/* Filtros */}
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input type="text" placeholder="🔍 Buscar cliente, NCF..."
-                    value={busqueda} onChange={e => setBusqueda(e.target.value)}
-                    style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #ced4da', fontSize: '14px', width: '260px', outline: 'none' }} />
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['Todos', ...ESTADOS].map(e => (
-                        <button key={e} onClick={() => setFiltroEstado(e)} style={{
-                            padding: '8px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
-                            backgroundColor: filtroEstado === e ? '#2c3e50' : '#e9ecef',
-                            color: filtroEstado === e ? 'white' : '#495057', transition: 'all 0.2s'
-                        }}>
-                            {e === 'Todos' ? 'Todos' : `${SEMAFORO[e].emoji} ${e}`}
-                        </button>
-                    ))}
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input type="text" placeholder="Buscar cliente, NCF..."
+                        value={busqueda} onChange={e => setBusqueda(e.target.value)}
+                        style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #ced4da', fontSize: '14px', width: '260px', outline: 'none' }} />
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {['Todos', ...ESTADOS].map(e => (
+                            <button key={e} onClick={() => setFiltroEstado(e)} style={{
+                                padding: '8px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+                                backgroundColor: filtroEstado === e ? '#2c3e50' : '#e9ecef',
+                                color: filtroEstado === e ? 'white' : '#495057', transition: 'all 0.2s'
+                            }}>
+                                {e === 'Todos' ? 'Todos' : `${SEMAFORO[e].emoji} ${e}`}
+                            </button>
+                        ))}
+                    </div>
                 </div>
+                <button
+                    onClick={() => setMostrarModalPDF(true)}
+                    style={{ padding: '9px 18px', borderRadius: '8px', border: 'none', backgroundColor: '#dc3545', color: 'white', cursor: 'pointer', fontWeight: '700', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
+                >
+                    Exportar PDF
+                </button>
             </div>
 
             {mensaje && (

@@ -262,7 +262,7 @@ export default function PuntoDeVenta({ usuario }) {
                         <h2 style={{ margin: 0 }}>Productos Disponibles</h2>
                         <input
                             type="text"
-                            placeholder="🔍 Buscar producto..."
+                            placeholder="Buscar producto..."
                             value={busquedaProducto}
                             onChange={(e) => setBusquedaProducto(e.target.value)}
                             style={{
