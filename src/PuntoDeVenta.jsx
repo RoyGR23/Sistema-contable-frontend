@@ -21,7 +21,7 @@ export default function PuntoDeVenta({ usuario }) {
     // modalAuth = { permiso_requerido, descripcionAccion, onAutorizado }
 
     const permisos_acciones = usuario?.permisos_acciones || [];
-    const puedeEditarCliente = permisos_acciones.includes('clientes_seleccionar');
+    const puedeEditarCliente = permisos_acciones.includes('caja_seleccionar_cliente');
     const puedeAplicarDescuento = permisos_acciones.includes('caja_aplicar_descuento');
     const puedeRegistrarFactura = permisos_acciones.includes('caja_aplicar_factura');
     const puedeSeleccionarProductos = permisos_acciones.includes('caja_seleccionar_productos');
@@ -200,7 +200,7 @@ export default function PuntoDeVenta({ usuario }) {
     const handleSeleccionarCliente = (cliente) => {
         if (!puedeEditarCliente) {
             setModalAuth({
-                permiso_requerido: 'clientes_seleccionar',
+                permiso_requerido: 'caja_seleccionar_cliente',
                 descripcionAccion: 'Buscar y asignar clientes',
                 onAutorizado: () => {
                     setClienteSeleccionado(cliente);
@@ -333,7 +333,7 @@ export default function PuntoDeVenta({ usuario }) {
                                         if (!puedeEditarCliente) {
                                             // Abrir modal en el primer intento de escritura
                                             setModalAuth({
-                                                permiso_requerido: 'clientes_seleccionar',
+                                                permiso_requerido: 'caja_seleccionar_cliente',
                                                 descripcionAccion: 'Buscar y asignar clientes',
                                                 onAutorizado: () => setModalAuth(null)
                                             });

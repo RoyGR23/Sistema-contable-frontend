@@ -10,6 +10,8 @@ export default function Clientes({ usuario }) {
     const puedeAgregar = permisos_acciones.includes('clientes_agregar');
     const puedeEditar = permisos_acciones.includes('clientes_editar');
     const puedeEliminar = permisos_acciones.includes('clientes_eliminar');
+    const puedeSeleccionar = permisos_acciones.includes('clientes_seleccionar');
+    const puedeVerTransacciones = permisos_acciones.includes('clientes_transacciones');
 
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [nuevoCliente, setNuevoCliente] = useState({ nombre_cliente: '', rnc_cedula: '', telefono: '', email: '', direccion: '' });
@@ -307,122 +309,126 @@ export default function Clientes({ usuario }) {
                     </form>
 
                     {/* Historial de Compras del Cliente */}
-                    <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <h4 style={{ margin: '0 0 10px 0', color: '#495057', fontSize: '16px' }}>Historial de Compras</h4>
-                        {cargandoCompras ? (
-                            <span style={{ color: '#6c757d', fontStyle: 'italic', fontSize: '14px' }}>Calculando total de compras...</span>
-                        ) : totalCompras > 0 ? (
-                            <div style={{ textAlign: 'center' }}>
-                                <span style={{ fontSize: '14px', color: '#6c757d', display: 'block', marginBottom: '5px' }}>Total acumulado en facturas:</span>
-                                <strong style={{ fontSize: '26px', color: '#28a745' }}>RD$ {totalCompras.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-                            </div>
-                        ) : (
-                            <span style={{ color: '#6c757d', fontSize: '14px' }}>Este cliente aún no tiene facturas/compras registradas.</span>
-                        )}
-                    </div>
-
-                    {/* Tabla de Facturas del Cliente */}
-                    {totalCompras > 0 && (
-                        <div style={{ marginTop: '30px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e9ecef', paddingBottom: '10px', marginBottom: '15px' }}>
-                                <h4 style={{ margin: 0, color: '#495057', fontSize: '16px' }}>Transacciones</h4>
-
-                                {/* Filtros de Fecha */}
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <label style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Desde:</label>
-                                        <input
-                                            type="date"
-                                            value={fechaInicio}
-                                            onChange={(e) => {
-                                                setFechaInicio(e.target.value);
-                                                cargarTransaccionesCliente(clienteEditando.rnc_cedula, e.target.value, fechaFin);
-                                            }}
-                                            style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
-                                        />
+                    {puedeVerTransacciones && (
+                        <>
+                            <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f8f9fa', border: '1px solid #e9ecef', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <h4 style={{ margin: '0 0 10px 0', color: '#495057', fontSize: '16px' }}>Historial de Compras</h4>
+                                {cargandoCompras ? (
+                                    <span style={{ color: '#6c757d', fontStyle: 'italic', fontSize: '14px' }}>Calculando total de compras...</span>
+                                ) : totalCompras > 0 ? (
+                                    <div style={{ textAlign: 'center' }}>
+                                        <span style={{ fontSize: '14px', color: '#6c757d', display: 'block', marginBottom: '5px' }}>Total acumulado en facturas:</span>
+                                        <strong style={{ fontSize: '26px', color: '#28a745' }}>RD$ {totalCompras.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <label style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Hasta:</label>
-                                        <input
-                                            type="date"
-                                            value={fechaFin}
-                                            onChange={(e) => {
-                                                setFechaFin(e.target.value);
-                                                cargarTransaccionesCliente(clienteEditando.rnc_cedula, fechaInicio, e.target.value);
-                                            }}
-                                            style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
-                                        />
+                                ) : (
+                                    <span style={{ color: '#6c757d', fontSize: '14px' }}>Este cliente aún no tiene facturas/compras registradas.</span>
+                                )}
+                            </div>
+
+                            {/* Tabla de Facturas del Cliente */}
+                            {totalCompras > 0 && (
+                                <div style={{ marginTop: '30px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e9ecef', paddingBottom: '10px', marginBottom: '15px' }}>
+                                        <h4 style={{ margin: 0, color: '#495057', fontSize: '16px' }}>Transacciones</h4>
+
+                                        {/* Filtros de Fecha */}
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <label style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Desde:</label>
+                                                <input
+                                                    type="date"
+                                                    value={fechaInicio}
+                                                    onChange={(e) => {
+                                                        setFechaInicio(e.target.value);
+                                                        cargarTransaccionesCliente(clienteEditando.rnc_cedula, e.target.value, fechaFin);
+                                                    }}
+                                                    style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
+                                                />
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <label style={{ fontSize: '12px', color: '#6c757d', marginBottom: '2px' }}>Hasta:</label>
+                                                <input
+                                                    type="date"
+                                                    value={fechaFin}
+                                                    onChange={(e) => {
+                                                        setFechaFin(e.target.value);
+                                                        cargarTransaccionesCliente(clienteEditando.rnc_cedula, fechaInicio, e.target.value);
+                                                    }}
+                                                    style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setFechaInicio("");
+                                                    setFechaFin("");
+                                                    cargarTransaccionesCliente(clienteEditando.rnc_cedula, "", "");
+                                                }}
+                                                style={{ padding: '5px 10px', marginTop: '16px', backgroundColor: '#f8f9fa', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+                                                title="Limpiar filtros de fecha"
+                                            >
+                                                Limpiar
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            setFechaInicio("");
-                                            setFechaFin("");
-                                            cargarTransaccionesCliente(clienteEditando.rnc_cedula, "", "");
-                                        }}
-                                        style={{ padding: '5px 10px', marginTop: '16px', backgroundColor: '#f8f9fa', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
-                                        title="Limpiar filtros de fecha"
-                                    >
-                                        Limpiar
-                                    </button>
-                                </div>
-                            </div>
 
-                            <div style={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e9ecef', overflow: 'hidden' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                                    <thead>
-                                        <tr style={{ backgroundColor: '#e9ecef', borderBottom: '2px solid #dee2e6' }}>
-                                            <th style={{ padding: '10px 15px', color: '#495057' }}>Fecha</th>
-                                            <th style={{ padding: '10px 15px', color: '#495057' }}>NCF</th>
-                                            <th style={{ padding: '10px 15px', color: '#495057' }}>ITBIS</th>
-                                            <th style={{ padding: '10px 15px', color: '#495057' }}>Monto Total</th>
-                                            <th style={{ padding: '10px 15px', color: '#495057' }}>Método de Pago</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {cargandoTransaccionesCliente ? (
-                                            <tr>
-                                                <td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#7f8c8d' }}>Cargando facturas...</td>
-                                            </tr>
-                                        ) : transaccionesActuales.length > 0 ? transaccionesActuales.map((t) => (
-                                            <tr key={t.id} style={{ borderBottom: '1px solid #e9ecef', color: '#34495e' }}>
-                                                <td style={{ padding: '10px 15px' }}>{new Date(t.fecha).toLocaleDateString('es-DO', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-                                                <td style={{ padding: '10px 15px' }}>{t.ncf}</td>
-                                                <td style={{ padding: '10px 15px' }}>RD$ {t.total_itbis.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                <td style={{ padding: '10px 15px', color: '#28a745', fontWeight: 'bold' }}>RD$ {t.total_pagar.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                <td style={{ padding: '10px 15px' }}>{t.metodo_pago}</td>
-                                            </tr>
-                                        )) : (
-                                            <tr>
-                                                <td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#7f8c8d' }}>No hay transacciones en este rango de fechas.</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    <div style={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e9ecef', overflow: 'hidden' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                                            <thead>
+                                                <tr style={{ backgroundColor: '#e9ecef', borderBottom: '2px solid #dee2e6' }}>
+                                                    <th style={{ padding: '10px 15px', color: '#495057' }}>Fecha</th>
+                                                    <th style={{ padding: '10px 15px', color: '#495057' }}>NCF</th>
+                                                    <th style={{ padding: '10px 15px', color: '#495057' }}>ITBIS</th>
+                                                    <th style={{ padding: '10px 15px', color: '#495057' }}>Monto Total</th>
+                                                    <th style={{ padding: '10px 15px', color: '#495057' }}>Método de Pago</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {cargandoTransaccionesCliente ? (
+                                                    <tr>
+                                                        <td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#7f8c8d' }}>Cargando facturas...</td>
+                                                    </tr>
+                                                ) : transaccionesActuales.length > 0 ? transaccionesActuales.map((t) => (
+                                                    <tr key={t.id} style={{ borderBottom: '1px solid #e9ecef', color: '#34495e' }}>
+                                                        <td style={{ padding: '10px 15px' }}>{new Date(t.fecha).toLocaleDateString('es-DO', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                                                        <td style={{ padding: '10px 15px' }}>{t.ncf}</td>
+                                                        <td style={{ padding: '10px 15px' }}>RD$ {t.total_itbis.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                        <td style={{ padding: '10px 15px', color: '#28a745', fontWeight: 'bold' }}>RD$ {t.total_pagar.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                        <td style={{ padding: '10px 15px' }}>{t.metodo_pago}</td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr>
+                                                        <td colSpan="5" style={{ padding: '15px', textAlign: 'center', color: '#7f8c8d' }}>No hay transacciones en este rango de fechas.</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
 
-                            {/* Controles de Paginación */}
-                            {totalPaginas > 1 && (
-                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '15px', gap: '15px' }}>
-                                    <button
-                                        onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
-                                        disabled={paginaActual === 1}
-                                        style={{ padding: '8px 15px', backgroundColor: paginaActual === 1 ? '#e9ecef' : '#007bff', color: paginaActual === 1 ? '#6c757d' : 'white', border: 'none', borderRadius: '5px', cursor: paginaActual === 1 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
-                                    >
-                                        Anterior
-                                    </button>
-                                    <span style={{ fontSize: '14px', color: '#495057' }}>
-                                        Página <strong>{paginaActual}</strong> de <strong>{totalPaginas}</strong>
-                                    </span>
-                                    <button
-                                        onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
-                                        disabled={paginaActual === totalPaginas}
-                                        style={{ padding: '8px 15px', backgroundColor: paginaActual === totalPaginas ? '#e9ecef' : '#007bff', color: paginaActual === totalPaginas ? '#6c757d' : 'white', border: 'none', borderRadius: '5px', cursor: paginaActual === totalPaginas ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
-                                    >
-                                        Siguiente
-                                    </button>
+                                    {/* Controles de Paginación */}
+                                    {totalPaginas > 1 && (
+                                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '15px', gap: '15px' }}>
+                                            <button
+                                                onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+                                                disabled={paginaActual === 1}
+                                                style={{ padding: '8px 15px', backgroundColor: paginaActual === 1 ? '#e9ecef' : '#007bff', color: paginaActual === 1 ? '#6c757d' : 'white', border: 'none', borderRadius: '5px', cursor: paginaActual === 1 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+                                            >
+                                                Anterior
+                                            </button>
+                                            <span style={{ fontSize: '14px', color: '#495057' }}>
+                                                Página <strong>{paginaActual}</strong> de <strong>{totalPaginas}</strong>
+                                            </span>
+                                            <button
+                                                onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+                                                disabled={paginaActual === totalPaginas}
+                                                style={{ padding: '8px 15px', backgroundColor: paginaActual === totalPaginas ? '#e9ecef' : '#007bff', color: paginaActual === totalPaginas ? '#6c757d' : 'white', border: 'none', borderRadius: '5px', cursor: paginaActual === totalPaginas ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+                                            >
+                                                Siguiente
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                        </div>
+                        </>
                     )}
                 </div>
             ) : (
@@ -551,11 +557,30 @@ export default function Clientes({ usuario }) {
                                     <tr key={cliente.rnc_cedula} style={{ borderBottom: '1px solid #e9ecef', color: '#34495e' }}>
                                         <td
                                             className="cliente-nombre-celda"
+                                            style={puedeSeleccionar ? { cursor: 'pointer', color: '#007bff', fontWeight: 'bold', textDecoration: 'underline' } : {}}
                                             onClick={() => {
-                                                setClienteEditando(cliente);
-                                                setMensaje("");
-                                                cargarComprasCliente(cliente.rnc_cedula);
-                                                cargarTransaccionesCliente(cliente.rnc_cedula);
+                                                if (puedeSeleccionar) {
+                                                    setClienteEditando(cliente);
+                                                    setMensaje("");
+                                                    if (puedeVerTransacciones) {
+                                                        cargarComprasCliente(cliente.rnc_cedula);
+                                                        cargarTransaccionesCliente(cliente.rnc_cedula);
+                                                    }
+                                                } else {
+                                                    setModalAuth({
+                                                        permiso_requerido: 'clientes_seleccionar',
+                                                        descripcionAccion: 'Visualizar detalles y seleccionar cliente',
+                                                        onAutorizado: () => {
+                                                            setModalAuth(null);
+                                                            setClienteEditando(cliente);
+                                                            setMensaje("");
+                                                            if (puedeVerTransacciones) {
+                                                                cargarComprasCliente(cliente.rnc_cedula);
+                                                                cargarTransaccionesCliente(cliente.rnc_cedula);
+                                                            }
+                                                        }
+                                                    });
+                                                }
                                             }}
                                             title="Ver/Editar Detalles del Cliente"
                                         >
