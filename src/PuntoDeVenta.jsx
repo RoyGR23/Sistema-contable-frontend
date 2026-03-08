@@ -146,7 +146,7 @@ export default function PuntoDeVenta({ usuario }) {
         const datosVenta = {
             cliente_id: clienteSeleccionado ? clienteSeleccionado.id : null,
             rnc_cliente: clienteSeleccionado ? clienteSeleccionado.rnc_cedula : null,
-            nombre_cliente: clienteSeleccionado ? clienteSeleccionado.nombre_cliente : (busquedaCliente.trim() !== "" ? busquedaCliente : "Cliente Casual"),
+            nombre_cliente: clienteSeleccionado ? clienteSeleccionado.nombre_cliente : (busquedaCliente.trim() !== "" ? busquedaCliente : ""),
             tipo_comprobante: "B02",
             metodo_pago: "Efectivo",
             articulos: carrito,
