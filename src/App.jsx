@@ -33,7 +33,8 @@ const tienePerm = (permisos_acciones, codigo) => {
     'CAJ': 'caja_',
     'CLI': 'clientes_',
     'INV': 'inventario_',
-    'CAT': 'categorias_'
+    'CAT': 'categorias_',
+    'CXC': 'cuentas_cobrar_'
   };
 
   const prefix = prefixMap[codigo];
@@ -89,6 +90,9 @@ function LayoutConMenu({ children, onLogout, usuario }) {
   const verRoles = tienePerm(permisos_acciones, 'ROL');
   const verUsuarios = tienePerm(permisos_acciones, 'USU');
   const mostrarMenuAdmin = verDescuentos || verRoles || verUsuarios;
+
+  // Verificar permiso solo para la opción interna Cuentas por Cobrar
+  const verCuentasCobrar = tienePermiso(permisos_acciones, 'cuentas_cobrar_ver');
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', width: '100%', backgroundColor: '#f4f6f9' }}>
@@ -209,9 +213,11 @@ function LayoutConMenu({ children, onLogout, usuario }) {
                 <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
                   Reportes
                 </div>
-                <Link to="/cuentas-cobrar" style={{ ...estiloEnlace('/cuentas-cobrar'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/cuentas-cobrar' ? '#e9ecef' : 'transparent', color: location.pathname === '/cuentas-cobrar' ? '#007bff' : '#495057' }}>
-                  Cuentas por cobrar
-                </Link>
+                {verCuentasCobrar && (
+                  <Link to="/cuentas-cobrar" style={{ ...estiloEnlace('/cuentas-cobrar'), paddingLeft: '55px', fontSize: '14px', borderLeft: 'none', backgroundColor: location.pathname === '/cuentas-cobrar' ? '#e9ecef' : 'transparent', color: location.pathname === '/cuentas-cobrar' ? '#007bff' : '#495057' }}>
+                    Cuentas por cobrar
+                  </Link>
+                )}
                 <div style={{ ...estiloEnlace(''), paddingLeft: '55px', fontSize: '14px', cursor: 'not-allowed', opacity: 0.5, color: '#495057' }} title="Próximamente">
                   Ingresos
                 </div>
@@ -616,7 +622,11 @@ export default function App() {
               <Usuarios />
             </RutaProtegida>
           } />
-          <Route path="/cuentas-cobrar" element={<CuentasCobrar usuario={usuarioActivo} />} />
+          <Route path="/cuentas-cobrar" element={
+            <RutaProtegida permisos_acciones={usuarioActivo.permisos_acciones} codigo="CXC">
+              <CuentasCobrar usuario={usuarioActivo} />
+            </RutaProtegida>
+          } />
         </Routes>
       </LayoutConMenu>
     </Router>
