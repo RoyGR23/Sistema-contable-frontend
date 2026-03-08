@@ -73,7 +73,7 @@ function ModalAbono({ cuenta, onCerrar, onAbonoRealizado }) {
                 boxShadow: '0 20px 60px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto'
             }} onClick={e => e.stopPropagation()}>
 
-                <h3 style={{ margin: '0 0 4px', color: '#2c3e50' }}>💰 Realizar Abono</h3>
+                <h3 style={{ margin: '0 0 4px', color: '#2c3e50' }}>Realizar Abono</h3>
                 <p style={{ margin: '0 0 20px', color: '#7f8c8d', fontSize: '13px' }}>
                     Cliente: <strong>{cuenta.nombre_cliente}</strong> &nbsp;|&nbsp; Saldo: <strong style={{ color: '#dc3545' }}>{formatRD(saldoRestante)}</strong>
                 </p>
@@ -185,7 +185,7 @@ function PanelAbonos({ cuenta, onCerrar, onActualizarCuenta }) {
 
                 {/* Resumen de la cuenta */}
                 <div style={{ padding: '16px 24px', backgroundColor: '#f8f9fa', borderBottom: '1px solid #e9ecef', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Monto Original</div><div style={{ fontSize: '16px', fontWeight: '700', color: '#2c3e50' }}>{formatRD(cuenta.monto_inicial)}</div></div>
+                    <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Monto Facturado</div><div style={{ fontSize: '16px', fontWeight: '700', color: '#2c3e50' }}>{formatRD(cuenta.monto_inicial)}</div></div>
                     <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Saldo Pendiente</div><div style={{ fontSize: '16px', fontWeight: '700', color: saldoCero ? '#198754' : '#dc3545' }}>{formatRD(cuenta.saldo_pendiente)}</div></div>
                     <div><div style={{ fontSize: '11px', color: '#7f8c8d', textTransform: 'uppercase', fontWeight: '700' }}>Estado</div><div style={{ marginTop: '2px' }}><SemaforoEstado estado={cuenta.estado} /></div></div>
                 </div>
@@ -306,21 +306,19 @@ export default function CuentasCobrar() {
     return (
         <div style={{ padding: '30px', fontFamily: 'Arial, sans-serif' }}>
             <h1 style={{ color: '#2c3e50', marginBottom: '5px' }}>Cuentas por Cobrar</h1>
-            <p style={{ color: '#7f8c8d', marginBottom: '25px' }}>Gestión de ventas a crédito y seguimiento de pagos. <em>Haz clic en una fila para ver los abonos.</em></p>
-
             {/* Tarjetas resumen */}
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '28px' }}>
-                <div style={{ flex: 1, minWidth: '200px', backgroundColor: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.07)', borderLeft: '5px solid #3498db' }}>
-                    <div style={{ color: '#7f8c8d', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Cuentas</div>
-                    <div style={{ fontSize: '38px', fontWeight: 'bold', color: '#2c3e50' }}>{totalCuentas}</div>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                <div style={{ flex: 1, minWidth: '150px', backgroundColor: '#fff', padding: '12px 16px', borderRadius: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', borderLeft: '4px solid #3498db' }}>
+                    <div style={{ color: '#7f8c8d', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Cuentas</div>
+                    <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#2c3e50', lineHeight: '1.2' }}>{totalCuentas}</div>
                 </div>
-                <div style={{ flex: 1, minWidth: '200px', backgroundColor: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.07)', borderLeft: '5px solid #fd7e14' }}>
-                    <div style={{ color: '#7f8c8d', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>Saldo Pendiente</div>
-                    <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#fd7e14' }}>{formatRD(totalPendiente)}</div>
+                <div style={{ flex: 1, minWidth: '150px', backgroundColor: '#fff', padding: '12px 16px', borderRadius: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', borderLeft: '4px solid #fd7e14' }}>
+                    <div style={{ color: '#7f8c8d', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>Saldo Pendiente</div>
+                    <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#fd7e14', lineHeight: '1.4' }}>{formatRD(totalPendiente)}</div>
                 </div>
-                <div style={{ flex: 1, minWidth: '200px', backgroundColor: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.07)', borderLeft: '5px solid #dc3545' }}>
-                    <div style={{ color: '#7f8c8d', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>Saldo Atrasado</div>
-                    <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#dc3545' }}>{formatRD(totalAtrasado)}</div>
+                <div style={{ flex: 1, minWidth: '150px', backgroundColor: '#fff', padding: '12px 16px', borderRadius: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)', borderLeft: '4px solid #dc3545' }}>
+                    <div style={{ color: '#7f8c8d', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>Saldo Atrasado</div>
+                    <div style={{ fontSize: '17px', fontWeight: 'bold', color: '#dc3545', lineHeight: '1.4' }}>{formatRD(totalAtrasado)}</div>
                 </div>
             </div>
 
