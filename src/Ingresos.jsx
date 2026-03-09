@@ -124,7 +124,7 @@ export default function Ingresos({ usuario }) {
                         cursor: exportando || ingresosFiltrados.length === 0 ? 'not-allowed' : 'pointer',
                         fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px'
                     }}>
-                    {exportando ? '⏳ Generando...' : '📄 Exportar PDF'}
+                    {exportando ? 'Generando...' : 'Exportar PDF'}
                 </button>
             </div>
 
